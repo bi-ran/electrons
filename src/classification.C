@@ -1,8 +1,14 @@
+#include "../include/lambdas.h"
+
 #include "../git/config/include/configurer.h"
+
+#include "../git/paper-and-pencil/include/paper.h"
+#include "../git/paper-and-pencil/include/pencil.h"
 
 #include "TCut.h"
 #include "TFile.h"
 #include "TH1.h"
+#include "TMarker.h"
 #include "TTree.h"
 
 #include "TMVA/DataLoader.h"
@@ -17,8 +23,11 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <unordered_map>
+#include <utility>
 
 using namespace std::literals::string_literals;
+using namespace std::placeholders;
 
 int outliers(configurer* conf) {
     auto signal = conf->get<std::string>("signal");
@@ -193,6 +202,66 @@ int classify(configurer* conf, std::string const& output,
     return 0;
 }
 
+std::pair<float, float> evaluate(configurer* conf, std::string const& id) {
+    auto signal = conf->get<std::string>("signal");
+    auto background = conf->get<std::string>("background");
+    auto variables = conf->get<std::vector<std::string>>("variables");
+    auto type = conf->get<std::vector<uint32_t>>("type");
+    auto lower = conf->get<std::vector<double>>(id + "_lower");
+    auto upper = conf->get<std::vector<double>>(id + "_upper");
+    auto weight = conf->get<std::string>("weight");
+
+    /* 0: barrel, 1: endcap */
+    auto options = conf->get<int32_t>("options");
+
+    /* evaluate signal, background efficiencies */
+    TFile* fsig = new TFile(signal.data(), "read");
+    TTree* tsig = (TTree*)fsig->Get("e");
+    TFile* fbkg = new TFile(background.data(), "read");
+    TTree* tbkg = (TTree*)fbkg->Get("e");
+
+    TCut minpt = "elePt > 20";
+
+    TCut barrel = "abs(eleSCEta) < 1.442";
+    TCut endcap = "abs(eleSCEta) > 1.556 && abs(eleSCEta) < 2.4";
+    TCut region = options ? endcap : barrel;
+
+    TCut match = "gen_index != -1 && abs(mcMomPID[gen_index]) < 25";
+    TCut unmatch = "gen_index == -1";
+    TCut nonprompt = "gen_index != -1 && abs(mcMomPID[gen_index]) > 24";
+
+    TCut sig_sel = minpt && match && region;
+    TCut bkg_sel = minpt && (unmatch || nonprompt) && region;
+
+    if (weight.empty()) { weight = "1"s; }
+    TCut w(weight.data());
+
+    std::string id_string;
+    for (int64_t i = 0; i < static_cast<int64_t>(variables.size()); ++i) {
+        if (i != 0) {
+            id_string += "&&"s; }
+        if (type[i] != 0) {
+            id_string += std::to_string(lower[i]) + "<"s + variables[i]; }
+        if (type[i] == 2) {
+            id_string += "&&"s; }
+        if (type[i] != 1) {
+            id_string += std::to_string(upper[i]) + ">"s + variables[i]; }
+    }
+
+    TCut id_sel(id_string.data());
+
+    int64_t totalsig = tsig->Draw("elePt", sig_sel * w, "goff");
+    int64_t selsig = tsig->Draw("elePt", (sig_sel && id_sel) * w, "goff");
+
+    int64_t totalbkg = tbkg->Draw("elePt", bkg_sel * w, "goff");
+    int64_t selbkg = tbkg->Draw("elePt", (bkg_sel && id_sel) * w, "goff");
+
+    float sigeff = static_cast<float>(selsig) / totalsig;
+    float bkgrej = 1.f - static_cast<float>(selbkg) / totalbkg;
+
+    return std::make_pair(sigeff, bkgrej);
+}
+
 int main(int argc, char* argv[]) {
     if (argc != 3) {
         printf("usage: %s [config] [output]\n", argv[0]);
@@ -208,6 +277,42 @@ int main(int argc, char* argv[]) {
     classify(conf, argv[2], "medium", 0.8);
     classify(conf, argv[2], "tight", 0.7);
 
+    /* extract roc curve from output file */
+    TFile* f = new TFile(("veto_"s + argv[2]).data(), "read");
+    auto roc = (TH1F*)f->Get("dataset/Method_CutsGA/CutsGA/MVA_CutsGA_rejBvsS");
+
+    /* lambda to format histogram approriately */
+    auto roc_formatter = [](TH1* obj, double min, double max) {
+        obj->SetStats(0);
+        obj->SetMarkerSize(0.4);
+        obj->SetMarkerStyle(20);
+        obj->SetAxisRange(min, max, "Y");
+        obj->SetTitle(";signal efficiency;background rejection");
+        obj->GetXaxis()->CenterTitle();
+        obj->GetYaxis()->CenterTitle();
+
+        for (int64_t i = 1; i <= obj->GetNbinsX(); ++i)
+            obj->SetBinError(i, 0);
+    };
+
+    auto c1 = new paper("working-points");
+    apply_default_style(c1,"pp #sqrt{s} = 5.02 TeV"s, 0., 1.);
+    c1->format(std::bind(roc_formatter, _1, 0., 1.));
+
+    c1->add(roc);
+
+    /* lambda to draw marker at working points */
+    auto mark = [&](int64_t, std::pair<float, float> const& wp, int64_t c) {
+        TMarker* marker = new TMarker(wp.first, wp.second, 21);
+        marker->SetMarkerSize(0.8);
+        marker->SetMarkerColor(colours[c]);
+        marker->Draw("same");
+    };
+
+    std::unordered_map<std::string, int64_t> cmap = {
+        { "veto", 1 }, { "loose", 3 }, { "medium", 4 }, { "tight", 5 } };
+
+    /* print selections and evaluate efficiencies */
     auto variables = conf->get<std::vector<std::string>>("variables");
     auto type = conf->get<std::vector<uint32_t>>("type");
     auto count = static_cast<int64_t>(variables.size());
@@ -226,7 +331,12 @@ int main(int argc, char* argv[]) {
         }
 
         printf("\n");
+
+        auto wp = evaluate(conf, id);
+        c1->accessory(std::bind(mark, _1, wp, cmap[id]));
     }
+
+    c1->draw("pdf");
 
     TMVA::efficiencies("dataset", ("veto_"s + argv[2]).data(), 2, true);
     TMVA::variables("dataset", ("veto_"s + argv[2]).data(),
