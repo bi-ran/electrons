@@ -270,13 +270,24 @@ int main(int argc, char* argv[]) {
 
     auto conf = new configurer(argv[1]);
 
+    auto stage = conf->get<uint64_t>("stage");
+
+    switch (stage) {
+        case 0: goto _stage0;
+        case 1: goto _stage1;
+        case 2: goto _stage2;
+    }
+
+_stage0:
     outliers(conf);
 
+_stage1:
     classify(conf, argv[2], "veto", 0.95);
     classify(conf, argv[2], "loose", 0.9);
     classify(conf, argv[2], "medium", 0.8);
     classify(conf, argv[2], "tight", 0.7);
 
+{
     /* extract roc curve from output file */
     TFile* f = new TFile(("veto_"s + argv[2]).data(), "read");
     auto roc = (TH1F*)f->Get("dataset/Method_CutsGA/CutsGA/MVA_CutsGA_rejBvsS");
@@ -336,7 +347,9 @@ int main(int argc, char* argv[]) {
     }
 
     c1->draw("pdf");
+}
 
+_stage2:
     TMVA::efficiencies("dataset", ("veto_"s + argv[2]).data(), 2, true);
     TMVA::variables("dataset", ("veto_"s + argv[2]).data(),
                     "InputVariables_Id", "comparison", false, true);
