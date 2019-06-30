@@ -14,6 +14,7 @@
     ACTION(float,           probe_pt,                   ## __VA_ARGS__)     \
     ACTION(float,           probe_eta,                  ## __VA_ARGS__)     \
     ACTION(float,           probe_phi,                  ## __VA_ARGS__)     \
+    ACTION(float,           mass,                       ## __VA_ARGS__)     \
     ACTION(float,           dr2_l1,                     ## __VA_ARGS__)     \
     ACTION(float,           dr2_hlt,                    ## __VA_ARGS__)     \
     ACTION(int32_t,         pass_l1,                    ## __VA_ARGS__)     \

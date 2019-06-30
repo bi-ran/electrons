@@ -13,12 +13,7 @@
 #include "../git/foliage/include/electrons.h"
 
 #include "../git/tricks-and-treats/include/train.h"
-
-inline float fdphi(float phi1, float phi2) {
-    float dphi = fabs(phi1 - phi2);
-    if (dphi > M_PI) { dphi = 2 * M_PI - dphi; }
-    return dphi;
-}
+#include "../git/tricks-and-treats/include/maglev.h"
 
 int extract(char const* config, char const* output) {
     auto conf = new configurer(config);
@@ -85,13 +80,16 @@ int extract(char const* config, char const* output) {
                 float maxpt = -1;
                 int32_t match = -1;
 
+                float ele_eta = (*tree_e->eleEta)[j];
+                float ele_phi = (*tree_e->elePhi)[j];
+
                 for (int32_t k = 0; k < tree_e->nMC; ++k) {
                     if (std::abs((*tree_e->mcPID)[k]) != 11) { continue; }
                     if ((*tree_e->mcStatus)[k] != 1) { continue; }
                     if ((*tree_e->mcPt)[k] < maxpt) { continue; }
 
-                    float dphi = fdphi((*tree_e->elePhi)[j], (*tree_e->mcPhi)[k]);
-                    float deta = fabs((*tree_e->eleEta)[j] - (*tree_e->mcEta)[k]);
+                    float deta = ele_eta - (*tree_e->mcEta)[k];
+                    float dphi = ml_dphi(ele_phi, (*tree_e->mcPhi)[k]);
                     float dr2 = dphi * dphi + deta * deta;
 
                     if (dr2 < max_dr2) {

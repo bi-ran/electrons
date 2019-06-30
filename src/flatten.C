@@ -7,6 +7,7 @@
 #include "../git/foliage/include/l1objects.h"
 
 #include "../git/tricks-and-treats/include/train.h"
+#include "../git/tricks-and-treats/include/maglev.h"
 
 #include "TFile.h"
 #include "TTree.h"
@@ -17,12 +18,6 @@
 #include <vector>
 
 using namespace std::literals::string_literals;
-
-inline float fdphi(float phi1, float phi2) {
-    float dphi = fabs(phi1 - phi2);
-    if (dphi > M_PI) { dphi = 2 * M_PI - dphi; }
-    return dphi;
-}
 
 std::vector<int64_t> clean(std::vector<double> const& values, int64_t size) {
     std::vector<double> handled;
@@ -49,7 +44,7 @@ float nearest_neighbour(float pt, float eta, float phi,
         if (other_pt[i] < pt) { continue; }
 
         float deta = eta - other_eta[i];
-        float dphi = fdphi(phi, other_phi[i]);
+        float dphi = ml_dphi(phi, other_phi[i]);
         float dr2 = deta * deta + dphi * dphi;
 
         if (dr2 < mindr2) { mindr2 = dr2; }
@@ -162,6 +157,16 @@ int flatten(char const* config, char const* output) {
             tree_tnp->pass_loose_id = loose_id[j];
             tree_tnp->pass_medium_id = medium_id[j];
             tree_tnp->pass_tight_id = tight_id[j];
+
+            tree_tnp->mass = ml_invariant_mass<coords::collider>(
+                (*tree_eg->elePt)[tag],
+                (*tree_eg->eleEta)[tag],
+                (*tree_eg->elePhi)[tag],
+                0.000511f,
+                (*tree_eg->elePt)[j],
+                (*tree_eg->eleEta)[j],
+                (*tree_eg->elePhi)[j],
+                0.000511f);
 
             tout->Fill();
         }
