@@ -290,16 +290,15 @@ int main(int argc, char* argv[]) {
         obj->SetTitle(";signal efficiency;background rejection");
         obj->GetXaxis()->CenterTitle();
         obj->GetYaxis()->CenterTitle();
-
-        for (int64_t i = 1; i <= obj->GetNbinsX(); ++i)
-            obj->SetBinError(i, 0);
     };
 
     auto c1 = new paper("working-points");
     apply_default_style(c1,"pp #sqrt{s} = 5.02 TeV"s, 0., 1.);
     c1->format(std::bind(roc_formatter, _1, 0., 1.));
+    c1->set(paper::key);
 
     c1->add(roc);
+    c1->adjust(roc, "l", "");
 
     /* lambda to draw marker at working points */
     auto mark = [&](int64_t, std::pair<float, float> const& wp, int64_t c) {
