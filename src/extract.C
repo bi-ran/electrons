@@ -31,9 +31,6 @@ int extract(char const* config, char const* output) {
     for (auto const& path : paths)
         path_map[path] = index++;
 
-    auto array_size = conf->get<int64_t>("array_size");
-    if (!array_size) { array_size = 2000; }
-
     auto forest = new train(files);
     auto chain_eg = forest->attach("ggHiNtuplizerGED/EventTree", true);
     auto chain_hlt = forest->attach("hltanalysisReco/HltTree", hlt_branches);
