@@ -153,7 +153,7 @@ int classify(configurer* conf, std::string const& output,
 
     loader->PrepareTrainingAndTestTree(
         sig_sel, bkg_sel,
-        "nTrain_Signal=10000:nTrain_Background=10000:"
+        "nTrain_Signal=100000:nTrain_Background=20000:"
         "SplitMode=Random:NormMode=NumEvents:!V");
 
     /* settings, variable limits */
@@ -303,7 +303,12 @@ _stage1:
         obj->GetYaxis()->CenterTitle();
     };
 
-    auto c1 = new paper("working-points");
+    std::string tag = argv[2];
+    auto ext = tag.find(".root");
+    if (ext != std::string::npos)
+        tag.erase(std::begin(tag) + ext, std::end(tag));
+
+    auto c1 = new paper("working-points-"s + tag);
     apply_default_style(c1,"pp #sqrt{s} = 5.02 TeV"s, 0., 1.);
     c1->format(std::bind(roc_formatter, _1, 0., 1.));
     c1->set(paper::key);
