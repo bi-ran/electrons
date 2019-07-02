@@ -71,12 +71,6 @@ int flatten(char const* config, char const* output) {
     auto l1dr2 = l1dr * l1dr;
     auto hltdr2 = hltdr * hltdr;
 
-    std::unordered_map<std::string, int64_t> path_map;
-
-    int64_t index = 0;
-    for (auto const& path : paths)
-        path_map[path] = index++;
-
     auto forest = new train(files);
     auto chain_eg = forest->attach("ggHiNtuplizerGED/EventTree", true);
     auto chain_l1 = forest->attach("l1object/L1UpgradeFlatTree", true);
@@ -182,10 +176,10 @@ int flatten(char const* config, char const* output) {
             tree_tnp->weight = 1.f;
 
             /* special variables for trigger versions */
-            tree_tnp->pass_v1 = tree_tnp->pass_hlt && tree_trg->accepts[
-                path_map["HLT_HIEle20_WPLoose_Gsf_v1"]] == 1;
-            tree_tnp->pass_v2 = tree_tnp->pass_hlt && tree_trg->accepts[
-                path_map["HLT_HIEle20_WPLoose_Gsf_v2"]] == 1;
+            tree_tnp->pass_v1 = tree_tnp->pass_hlt && tree_trg->accept(
+                "HLT_HIEle20_WPLoose_Gsf_v1"s) == 1;
+            tree_tnp->pass_v2 = tree_tnp->pass_hlt && tree_trg->accept(
+                "HLT_HIEle20_WPLoose_Gsf_v2"s) == 1;
 
             tout->Fill();
         }

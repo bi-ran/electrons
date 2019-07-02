@@ -11,6 +11,7 @@
 
 #include "../git/foliage/include/foliage.h"
 #include "../git/foliage/include/electrons.h"
+#include "../git/foliage/include/triggers.h"
 
 #include "../git/tricks-and-treats/include/train.h"
 #include "../git/tricks-and-treats/include/maglev.h"
@@ -24,12 +25,6 @@ int extract(char const* config, char const* output) {
     auto hlt_branches = conf->get<bool>("hlt_branches");
     auto paths = conf->get<std::vector<std::string>>("paths");
     auto skim = conf->get<std::vector<std::string>>("skim");
-
-    std::unordered_map<std::string, int64_t> path_map;
-
-    int64_t index = 0;
-    for (auto const& path : paths)
-        path_map[path] = index++;
 
     auto forest = new train(files);
     auto chain_eg = forest->attach("ggHiNtuplizerGED/EventTree", true);
@@ -61,7 +56,7 @@ int extract(char const* config, char const* output) {
         if (!skim.empty()) {
             bool pass_skim = false;
             for (auto const& path : skim)
-                if (tree_hlt->accepts[path_map[path]])
+                if (tree_hlt->accept(path) == 1)
                     pass_skim = true;
 
             if (!pass_skim) { continue; }
