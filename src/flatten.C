@@ -5,6 +5,7 @@
 #include "../git/foliage/include/electrons.h"
 #include "../git/foliage/include/hltobjects.h"
 #include "../git/foliage/include/l1objects.h"
+#include "../git/foliage/include/triggers.h"
 
 #include "../git/tricks-and-treats/include/train.h"
 #include "../git/tricks-and-treats/include/maglev.h"
@@ -58,6 +59,7 @@ int flatten(char const* config, char const* output) {
 
     auto files = conf->get<std::vector<std::string>>("files");
     auto max_entries = conf->get<int64_t>("max_entries");
+    auto paths = conf->get<std::vector<std::string>>("paths");
 
     auto l1pt = conf->get<float>("l1pt");
     auto l1dr = conf->get<float>("l1dr");
@@ -69,16 +71,24 @@ int flatten(char const* config, char const* output) {
     auto l1dr2 = l1dr * l1dr;
     auto hltdr2 = hltdr * hltdr;
 
+    std::unordered_map<std::string, int64_t> path_map;
+
+    int64_t index = 0;
+    for (auto const& path : paths)
+        path_map[path] = index++;
+
     auto forest = new train(files);
     auto chain_eg = forest->attach("ggHiNtuplizerGED/EventTree", true);
     auto chain_l1 = forest->attach("l1object/L1UpgradeFlatTree", true);
     auto chain_hlt = forest->attach(("hltobject/"s + hltpath).data(), true);
+    auto chain_trg = forest->attach("hltanalysisReco/HltTree", true);
 
     (*forest)();
 
     auto tree_eg = new electrons(chain_eg, false);
     auto tree_l1 = new l1objects(chain_l1);
     auto tree_hlt = new hltobjects(chain_hlt);
+    auto tree_trg = new triggers(chain_trg, paths);
 
     TTree::SetMaxTreeSize(1000000000000LL);
 
@@ -170,6 +180,12 @@ int flatten(char const* config, char const* output) {
                     0.000511f));
 
             tree_tnp->weight = 1.f;
+
+            /* special variables for trigger versions */
+            tree_tnp->pass_v1 = tree_tnp->pass_hlt && tree_trg->accepts[
+                path_map["HLT_HIEle20_WPLoose_Gsf_v1"]] == 1;
+            tree_tnp->pass_v2 = tree_tnp->pass_hlt && tree_trg->accepts[
+                path_map["HLT_HIEle20_WPLoose_Gsf_v2"]] == 1;
 
             tout->Fill();
         }
