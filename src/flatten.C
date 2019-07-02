@@ -158,15 +158,18 @@ int flatten(char const* config, char const* output) {
             tree_tnp->pass_medium_id = medium_id[j];
             tree_tnp->pass_tight_id = tight_id[j];
 
-            tree_tnp->mass = ml_invariant_mass<coords::collider>(
-                (*tree_eg->elePt)[tag],
-                (*tree_eg->eleEta)[tag],
-                (*tree_eg->elePhi)[tag],
-                0.000511f,
-                (*tree_eg->elePt)[j],
-                (*tree_eg->eleEta)[j],
-                (*tree_eg->elePhi)[j],
-                0.000511f);
+            tree_tnp->mass = std::sqrt(
+                ml_invariant_mass<coords::collider>(
+                    (*tree_eg->elePt)[tag],
+                    (*tree_eg->eleEta)[tag],
+                    (*tree_eg->elePhi)[tag],
+                    0.000511f,
+                    (*tree_eg->elePt)[j],
+                    (*tree_eg->eleEta)[j],
+                    (*tree_eg->elePhi)[j],
+                    0.000511f));
+
+            tree_tnp->weight = 1.f;
 
             tout->Fill();
         }

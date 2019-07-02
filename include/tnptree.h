@@ -23,6 +23,7 @@
     ACTION(int32_t,         pass_loose_id,              ## __VA_ARGS__)     \
     ACTION(int32_t,         pass_medium_id,             ## __VA_ARGS__)     \
     ACTION(int32_t,         pass_tight_id,              ## __VA_ARGS__)     \
+    ACTION(float,           weight,                     ## __VA_ARGS__)     \
 
 class tnptree {
   public:
