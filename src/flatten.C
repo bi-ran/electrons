@@ -152,6 +152,7 @@ int flatten(char const* config, char const* output) {
             tree_tnp->tag_phi = (*tree_eg->elePhi)[tag];
             tree_tnp->probe_pt = (*tree_eg->elePt)[j];
             tree_tnp->probe_eta = (*tree_eg->eleEta)[j];
+            tree_tnp->probe_abseta = std::abs(tree_tnp->probe_eta);
             tree_tnp->probe_phi = (*tree_eg->elePhi)[j];
             tree_tnp->dr2_l1 = l1mindr2[j];
             tree_tnp->dr2_hlt = hltmindr2[j];
