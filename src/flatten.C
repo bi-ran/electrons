@@ -54,12 +54,92 @@ float nearest_neighbour(float pt, float eta, float phi,
     return mindr2;
 }
 
+static int32_t pass_basic_selections(electrons* t, int64_t index) {
+    return (*t->eleConvVeto)[index] && (*t->eleMissHits)[index] <= 1
+        && (*t->eleIP3D)[index] < 0.03;
+}
+
+static int32_t pass_veto_id(electrons* t, int64_t index) {
+    if (!pass_basic_selections(t, index)) { return 0; }
+
+    if (std::abs((*t->eleSCEta)[index]) < 1.442) {
+        return (*t->eleHoverE)[index] < 0.06071
+            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.01029
+            && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00475
+            && std::abs((*t->eledPhiAtVtx)[index]) < 0.06250
+            && std::abs((*t->eleEoverPInv)[index]) < 0.13274;
+    }
+
+    return (*t->eleHoverE)[index] < 0.04518
+        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.03055
+        && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00662
+        && std::abs((*t->eledPhiAtVtx)[index]) < 0.08807
+        && std::abs((*t->eleEoverPInv)[index]) < 0.90658;
+}
+
+static int32_t pass_loose_id(electrons* t, int64_t index) {
+    if (!pass_basic_selections(t, index)) { return 0; }
+
+    if (std::abs((*t->eleSCEta)[index]) < 1.442) {
+        return (*t->eleHoverE)[index] < 0.02711
+            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.01016
+            && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00316
+            && std::abs((*t->eledPhiAtVtx)[index]) < 0.03937
+            && std::abs((*t->eleEoverPInv)[index]) < 0.05304;
+    }
+
+    return (*t->eleHoverE)[index] < 0.03750
+        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.02946
+        && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00565
+        && std::abs((*t->eledPhiAtVtx)[index]) < 0.03816
+        && std::abs((*t->eleEoverPInv)[index]) < 0.02356;
+}
+
+static int32_t pass_medium_id(electrons* t, int64_t index) {
+    if (!pass_basic_selections(t, index)) { return 0; }
+
+    if (std::abs((*t->eleSCEta)[index]) < 1.442) {
+        return (*t->eleHoverE)[index] < 0.02456
+            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.00971
+            && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00240
+            && std::abs((*t->eledPhiAtVtx)[index]) < 0.02921
+            && std::abs((*t->eleEoverPInv)[index]) < 0.04474;
+    }
+
+    return (*t->eleHoverE)[index] < 0.01133
+        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.02941
+        && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00559
+        && std::abs((*t->eledPhiAtVtx)[index]) < 0.02826
+        && std::abs((*t->eleEoverPInv)[index]) < 0.02343;
+}
+
+static int32_t pass_tight_id(electrons* t, int64_t index) {
+    if (!pass_basic_selections(t, index)) { return 0; }
+
+    if (std::abs((*t->eleSCEta)[index]) < 1.442) {
+        return (*t->eleHoverE)[index] < 0.02049
+            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.00934
+            && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00229
+            && std::abs((*t->eledPhiAtVtx)[index]) < 0.02794
+            && std::abs((*t->eleEoverPInv)[index]) < 0.03921;
+    }
+
+    return (*t->eleHoverE)[index] < 0.00139
+        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.02829
+        && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00470
+        && std::abs((*t->eledPhiAtVtx)[index]) < 0.02668
+        && std::abs((*t->eleEoverPInv)[index]) < 0.01539;
+}
+
 int flatten(char const* config, char const* output) {
     auto conf = new configurer(config);
 
     auto files = conf->get<std::vector<std::string>>("files");
     auto max_entries = conf->get<int64_t>("max_entries");
     auto paths = conf->get<std::vector<std::string>>("paths");
+    auto tree = conf->get<std::string>("tree");
+
+    auto tag_pt_min = conf->get<float>("tag_pt_min");
 
     auto l1pt = conf->get<float>("l1pt");
     auto l1dr = conf->get<float>("l1dr");
@@ -75,7 +155,7 @@ int flatten(char const* config, char const* output) {
     auto chain_eg = forest->attach("ggHiNtuplizerGED/EventTree", true);
     auto chain_l1 = forest->attach("l1object/L1UpgradeFlatTree", true);
     auto chain_hlt = forest->attach(("hltobject/"s + hltpath).data(), true);
-    auto chain_trg = forest->attach("hltanalysisReco/HltTree", true);
+    auto chain_trg = forest->attach((tree + "/HltTree").data(), true);
 
     (*forest)();
 
@@ -96,7 +176,11 @@ int flatten(char const* config, char const* output) {
         if (i % 10000 == 0)
             printf("entry: %li/%li\n", i, nentries);
 
+        tree_trg->reset();
         forest->get(i);
+
+        if (tree_trg->accept(0L) != 1)
+            continue;
 
         if (tree_eg->nEle < 2) { continue; }
 
@@ -133,19 +217,22 @@ int flatten(char const* config, char const* output) {
                 ptfinal, etafinal, phifinal));
 
             /* evaluate id */
-            veto_id.push_back(1);
-            loose_id.push_back(1);
-            medium_id.push_back(1);
-            tight_id.push_back(1);
+            veto_id.push_back(pass_veto_id(tree_eg, j));
+            loose_id.push_back(pass_loose_id(tree_eg, j));
+            medium_id.push_back(pass_medium_id(tree_eg, j));
+            tight_id.push_back(pass_tight_id(tree_eg, j));
 
             if (tag < 0 && l1mindr2.back() < l1dr2 && hltmindr2.back() < hltdr2
-                && medium_id.back()) { tag = j; }
+                && tight_id.back() && (*tree_eg->elePt)[j] > tag_pt_min) { tag = j; }
         }
 
         if (tag < 0) { continue; }
 
         for (int64_t j = 0; j < tree_eg->nEle; ++j) {
             if (j == tag) { continue; }
+
+            if ((*tree_eg->eleCharge)[tag] == (*tree_eg->eleCharge)[j])
+                continue;
 
             tree_tnp->tag_pt = (*tree_eg->elePt)[tag];
             tree_tnp->tag_eta = (*tree_eg->eleEta)[tag];
