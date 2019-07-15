@@ -28,12 +28,14 @@ int extract(char const* config, char const* output) {
 
     auto forest = new train(files);
     auto chain_eg = forest->attach("ggHiNtuplizerGED/EventTree", true);
-    auto chain_hlt = forest->attach("hltanalysisReco/HltTree", hlt_branches);
+    auto chain_hlt = forest->attach("hltanalysis/HltTree", hlt_branches);
+    auto chain_evt = forest->attach("hiEvtAnalyzer/HiTree", true);
 
     (*forest)();
 
     auto tree_eg = new electrons(chain_eg, mc_branches);
     auto tree_hlt = new triggers(chain_hlt, paths);
+    auto tree_evt = new event(chain_evt, mc_branches);
 
     TTree::SetMaxTreeSize(1000000000000LL);
 
@@ -64,6 +66,7 @@ int extract(char const* config, char const* output) {
 
         tree_e->copy(tree_eg);
         tree_e->copy(tree_hlt);
+        tree_e->copy(tree_evt);
 
         /* extra variables */
         if (mc_branches) {

@@ -4,6 +4,7 @@
 #include "../git/foliage/include/foliage.h"
 #include "../git/foliage/include/electrons.h"
 #include "../git/foliage/include/triggers.h"
+#include "../git/foliage/include/event.h"
 
 #include "TTree.h"
 
@@ -23,10 +24,14 @@ class etree {
         B_VAL_ELE_RECO(SETMONE)
         B_VEC_ELE_RECO(ALLOCOBJ)
 
+        B_VAL_EVT_RECO(SETMONE)
+
         if (_gen) {
             B_VAL_ELE_GEN(SETMONE)
             B_VEC_ELE_GEN(ALLOCOBJ)
             B_VEC_ELE_EXT(ALLOCOBJ)
+
+            B_VAL_EVT_GEN(SETMONE)
         }
 
         if (_hlt) {
@@ -45,10 +50,14 @@ class etree {
         B_VAL_ELE_RECO(SETZERO)
         B_VEC_ELE_RECO(SETZERO)
 
+        B_VAL_EVT_RECO(SETZERO)
+
         if (_gen) {
             B_VAL_ELE_GEN(SETZERO)
             B_VEC_ELE_GEN(SETZERO)
             B_VEC_ELE_EXT(SETZERO)
+
+            B_VAL_EVT_GEN(SETZERO)
         }
 
         if (_hlt) {
@@ -86,6 +95,14 @@ class etree {
         }
     }
 
+    void copy(event* t) {
+        B_VAL_EVT_RECO(COPYVAL, t)
+
+        if (_gen) {
+            B_VAL_EVT_GEN(COPYVAL, t)
+        }
+    }
+
     void copy(triggers* t) {
         if (_hlt) {
             B_VEC_TRG(COPYPTR, t, t->size())
@@ -97,6 +114,8 @@ class etree {
     B_VAL_ELE_GEN(DECLVAL)
     B_VEC_ELE_GEN(DECLPTR)
     B_VEC_ELE_EXT(DECLPTR)
+    B_VAL_EVT_RECO(DECLVAL)
+    B_VAL_EVT_GEN(DECLVAL)
     B_VEC_TRG(DECLPTR)
 
   private:
@@ -104,10 +123,14 @@ class etree {
         B_VAL_ELE_RECO(BRANCHVAL, t)
         B_VEC_ELE_RECO(BRANCHPTR, t)
 
+        B_VAL_EVT_RECO(BRANCHVAL, t)
+
         if (_gen) {
             B_VAL_ELE_GEN(BRANCHVAL, t)
             B_VEC_ELE_GEN(BRANCHPTR, t)
             B_VEC_ELE_EXT(BRANCHPTR, t)
+
+            B_VAL_EVT_GEN(BRANCHVAL, t)
         }
 
         if (_hlt) {
@@ -119,10 +142,14 @@ class etree {
         B_VAL_ELE_RECO(SETVALADDR, t)
         B_VEC_ELE_RECO(SETVALADDR, t)
 
+        B_VAL_EVT_RECO(SETVALADDR, t)
+
         if (_gen) {
             B_VAL_ELE_GEN(SETVALADDR, t)
             B_VEC_ELE_GEN(SETVALADDR, t)
             B_VEC_ELE_EXT(SETVALADDR, t)
+
+            B_VAL_EVT_GEN(SETVALADDR, t)
         }
 
         if (_hlt) {
