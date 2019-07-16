@@ -1,5 +1,7 @@
 #include "../include/lambdas.h"
 
+#include "../git/config/include/configurer.h"
+
 #include "../git/paper-and-pencil/include/paper.h"
 #include "../git/paper-and-pencil/include/pencil.h"
 
@@ -9,22 +11,17 @@
 #include "TH1.h"
 #include "TLine.h"
 
+using namespace std::placeholders;
 using namespace std::literals::string_literals;
 
-int64_t scale_factors(std::string const& inputm, std::string const& inputd,
-                      std::string const& var, std::string const& output) {
-    TFile* fm = new TFile(inputm.data(), "read");
-    TFile* fd = new TFile(inputd.data(), "read");
+int64_t scale_factors(char const* config, char const* output) {
+    auto conf = new configurer(config);
 
-    TCanvas* cm = (TCanvas*)fm->Get(
-        ("mc/efficiency/fit_eff_plots/probe_"s + var + "_PLOT"s).data());
-    TCanvas* cd = (TCanvas*)fd->Get(
-        ("data/efficiency/fit_eff_plots/probe_"s + var + "_PLOT"s).data());
-
-    auto hframe = (TH1F*)cd->GetPrimitive("frame");
-
-    auto gmc = (TGraphAsymmErrors*)cm->GetPrimitive("hxy_fit_eff");
-    auto gdata = (TGraphAsymmErrors*)cd->GetPrimitive("hxy_fit_eff");
+    auto dir = conf->get<std::string>("dir");
+    auto input_mc = conf->get<std::vector<std::string>>("input_mc");
+    auto input_data = conf->get<std::vector<std::string>>("input_data");
+    auto categories = conf->get<std::vector<std::string>>("categories");
+    auto var = conf->get<std::string>("var");
 
     auto hb = new pencil();
     hb->category("sample", "data", "mc");
@@ -54,7 +51,7 @@ int64_t scale_factors(std::string const& inputm, std::string const& inputd,
         obj->SetMarkerSize(0.84);
     };
 
-    auto line_at_unity = [&](int64_t) {
+    auto line_at_unity = [](int64_t, TH1* hframe) {
         double low_edge = hframe->GetBinLowEdge(1);
         double high_edge = hframe->GetBinLowEdge(hframe->GetNbinsX() + 1);
 
@@ -68,11 +65,28 @@ int64_t scale_factors(std::string const& inputm, std::string const& inputd,
     c1->legend(std::bind(coordinates, 0.54, 0.9, 0.84, 0.04));
     c1->format(frame_formatter);
     c1->format(graph_formatter);
-    c1->accessory(line_at_unity);
 
-    c1->add(hframe);
-    c1->stack(gmc, "mc", "incl");
-    c1->stack(gdata, "data", "incl");
+    auto panels = static_cast<int64_t>(input_data.size());
+    for (int64_t i = 0; i < panels; ++i) {
+        TFile* fm = new TFile((dir + "/"s + input_mc[i]).data(), "read");
+        TFile* fd = new TFile((dir + "/"s + input_data[i]).data(), "read");
+
+        TCanvas* cm = (TCanvas*)fm->Get(
+            ("mc/efficiency/fit_eff_plots/probe_"s + var + "_PLOT"s).data());
+        TCanvas* cd = (TCanvas*)fd->Get(
+            ("data/efficiency/fit_eff_plots/probe_"s + var + "_PLOT"s).data());
+
+        auto hframe = (TH1F*)cd->GetPrimitive("frame");
+
+        auto gmc = (TGraphAsymmErrors*)cm->GetPrimitive("hxy_fit_eff");
+        auto gdata = (TGraphAsymmErrors*)cd->GetPrimitive("hxy_fit_eff");
+
+        c1->add(hframe);
+        c1->stack(gmc, "mc", categories[i]);
+        c1->stack(gdata, "data", categories[i]);
+
+        c1->accessory(std::bind(line_at_unity, _1, hframe));
+    }
 
     hb->ditto("incl", "barrel");
     hb->sketch();
@@ -83,10 +97,10 @@ int64_t scale_factors(std::string const& inputm, std::string const& inputd,
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 5) {
-        printf("usage: %s [mc] [data] [var] [output]\n", argv[0]);
+    if (argc != 3) {
+        printf("usage: %s [config] [output]\n", argv[0]);
         return 1;
     }
 
-    return scale_factors(argv[1], argv[2], argv[3], argv[4]);
+    return scale_factors(argv[1], argv[2]);
 }
