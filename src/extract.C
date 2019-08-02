@@ -10,6 +10,7 @@
 #include "../git/config/include/configurer.h"
 
 #include "../git/foliage/include/foliage.h"
+#include "../git/foliage/include/eggen.h"
 #include "../git/foliage/include/electrons.h"
 #include "../git/foliage/include/triggers.h"
 
@@ -33,7 +34,8 @@ int extract(char const* config, char const* output) {
 
     (*forest)();
 
-    auto tree_eg = new electrons(chain_eg, mc_branches);
+    auto tree_egg = new eggen(chain_eg, mc_branches);
+    auto tree_egm = new electrons(chain_eg);
     auto tree_hlt = new triggers(chain_hlt, paths);
     auto tree_evt = new event(chain_evt, mc_branches);
 
@@ -53,7 +55,7 @@ int extract(char const* config, char const* output) {
 
         forest->get(i);
 
-        if (tree_eg->nEle < 1) { continue; }
+        if (tree_egm->nEle < 1) { continue; }
 
         if (!skim.empty()) {
             bool pass_skim = false;
@@ -64,7 +66,8 @@ int extract(char const* config, char const* output) {
             if (!pass_skim) { continue; }
         }
 
-        tree_e->copy(tree_eg);
+        tree_e->copy(tree_egg);
+        tree_e->copy(tree_egm);
         tree_e->copy(tree_hlt);
         tree_e->copy(tree_evt);
 

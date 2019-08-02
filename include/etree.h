@@ -2,9 +2,11 @@
 #define ETREE_H
 
 #include "../git/foliage/include/foliage.h"
+
+#include "../git/foliage/include/event.h"
+#include "../git/foliage/include/eggen.h"
 #include "../git/foliage/include/electrons.h"
 #include "../git/foliage/include/triggers.h"
-#include "../git/foliage/include/event.h"
 
 #include "TTree.h"
 
@@ -21,17 +23,15 @@ class etree {
     etree(TTree* t, bool gen, bool hlt)
             : _gen(gen),
               _hlt(hlt) {
+        B_VAL_EVT_RECO(SETMONE)
         B_VAL_ELE_RECO(SETMONE)
         B_VEC_ELE_RECO(ALLOCOBJ)
 
-        B_VAL_EVT_RECO(SETMONE)
-
         if (_gen) {
-            B_VAL_ELE_GEN(SETMONE)
-            B_VEC_ELE_GEN(ALLOCOBJ)
-            B_VEC_ELE_EXT(ALLOCOBJ)
-
             B_VAL_EVT_GEN(SETMONE)
+            B_VAL_EGM_GEN(SETMONE)
+            B_VEC_EGM_GEN(ALLOCOBJ)
+            B_VEC_ELE_EXT(ALLOCOBJ)
         }
 
         if (_hlt) {
@@ -47,17 +47,15 @@ class etree {
     etree(bool gen, bool hlt, TTree* t)
             : _gen(gen),
               _hlt(hlt) {
+        B_VAL_EVT_RECO(SETZERO)
         B_VAL_ELE_RECO(SETZERO)
         B_VEC_ELE_RECO(SETZERO)
 
-        B_VAL_EVT_RECO(SETZERO)
-
         if (_gen) {
-            B_VAL_ELE_GEN(SETZERO)
-            B_VEC_ELE_GEN(SETZERO)
-            B_VEC_ELE_EXT(SETZERO)
-
             B_VAL_EVT_GEN(SETZERO)
+            B_VAL_EGM_GEN(SETZERO)
+            B_VEC_EGM_GEN(SETZERO)
+            B_VEC_ELE_EXT(SETZERO)
         }
 
         if (_hlt) {
@@ -76,22 +74,12 @@ class etree {
         B_VEC_ELE_RECO(CLEAROBJ)
 
         if (_gen) {
-            B_VEC_ELE_GEN(CLEAROBJ)
+            B_VEC_EGM_GEN(CLEAROBJ)
             B_VEC_ELE_EXT(CLEAROBJ)
         }
 
         if (_hlt) {
             B_VEC_TRG(CLEAROBJ)
-        }
-    }
-
-    void copy(electrons* t) {
-        B_VAL_ELE_RECO(COPYVAL, t)
-        B_VEC_ELE_RECO(COPYOBJ, t)
-
-        if (_gen) {
-            B_VAL_ELE_GEN(COPYVAL, t)
-            B_VEC_ELE_GEN(COPYOBJ, t)
         }
     }
 
@@ -103,34 +91,44 @@ class etree {
         }
     }
 
+    void copy(eggen* t) {
+        if (_gen) {
+            B_VAL_EGM_GEN(COPYVAL, t)
+            B_VEC_EGM_GEN(COPYOBJ, t)
+        }
+    }
+
+    void copy(electrons* t) {
+        B_VAL_ELE_RECO(COPYVAL, t)
+        B_VEC_ELE_RECO(COPYOBJ, t)
+    }
+
     void copy(triggers* t) {
         if (_hlt) {
             B_VEC_TRG(COPYPTR, t, t->size())
         }
     }
 
-    B_VAL_ELE_RECO(DECLVAL)
-    B_VEC_ELE_RECO(DECLPTR)
-    B_VAL_ELE_GEN(DECLVAL)
-    B_VEC_ELE_GEN(DECLPTR)
-    B_VEC_ELE_EXT(DECLPTR)
     B_VAL_EVT_RECO(DECLVAL)
     B_VAL_EVT_GEN(DECLVAL)
+    B_VAL_EGM_GEN(DECLVAL)
+    B_VEC_EGM_GEN(DECLPTR)
+    B_VAL_ELE_RECO(DECLVAL)
+    B_VEC_ELE_RECO(DECLPTR)
+    B_VEC_ELE_EXT(DECLPTR)
     B_VEC_TRG(DECLPTR)
 
   private:
     void branch(TTree* t) {
+        B_VAL_EVT_RECO(BRANCHVAL, t)
         B_VAL_ELE_RECO(BRANCHVAL, t)
         B_VEC_ELE_RECO(BRANCHPTR, t)
 
-        B_VAL_EVT_RECO(BRANCHVAL, t)
-
         if (_gen) {
-            B_VAL_ELE_GEN(BRANCHVAL, t)
-            B_VEC_ELE_GEN(BRANCHPTR, t)
-            B_VEC_ELE_EXT(BRANCHPTR, t)
-
             B_VAL_EVT_GEN(BRANCHVAL, t)
+            B_VAL_EGM_GEN(BRANCHVAL, t)
+            B_VEC_EGM_GEN(BRANCHPTR, t)
+            B_VEC_ELE_EXT(BRANCHPTR, t)
         }
 
         if (_hlt) {
@@ -139,17 +137,15 @@ class etree {
     }
 
     void read(TTree* t) {
+        B_VAL_EVT_RECO(SETVALADDR, t)
         B_VAL_ELE_RECO(SETVALADDR, t)
         B_VEC_ELE_RECO(SETVALADDR, t)
 
-        B_VAL_EVT_RECO(SETVALADDR, t)
-
         if (_gen) {
-            B_VAL_ELE_GEN(SETVALADDR, t)
-            B_VEC_ELE_GEN(SETVALADDR, t)
-            B_VEC_ELE_EXT(SETVALADDR, t)
-
             B_VAL_EVT_GEN(SETVALADDR, t)
+            B_VAL_EGM_GEN(SETVALADDR, t)
+            B_VEC_EGM_GEN(SETVALADDR, t)
+            B_VEC_ELE_EXT(SETVALADDR, t)
         }
 
         if (_hlt) {

@@ -159,7 +159,7 @@ int flatten(char const* config, char const* output) {
 
     (*forest)();
 
-    auto tree_eg = new electrons(chain_eg, false);
+    auto tree_egm = new electrons(chain_eg);
     auto tree_l1 = new l1objects(chain_l1);
     auto tree_hlt = new hltobjects(chain_hlt);
     auto tree_trg = new triggers(chain_trg, paths);
@@ -182,7 +182,7 @@ int flatten(char const* config, char const* output) {
         if (tree_trg->accept(0L) != 1)
             continue;
 
-        if (tree_eg->nEle < 2) { continue; }
+        if (tree_egm->nEle < 2) { continue; }
 
         std::vector<float> l1mindr2;
         std::vector<float> hltmindr2;
@@ -193,9 +193,9 @@ int flatten(char const* config, char const* output) {
 
         int64_t tag = -1;
 
-        for (int64_t j = 0; j < tree_eg->nEle; ++j) {
-            float eta = (*tree_eg->eleEta)[j];
-            float phi = (*tree_eg->elePhi)[j];
+        for (int64_t j = 0; j < tree_egm->nEle; ++j) {
+            float eta = (*tree_egm->eleEta)[j];
+            float phi = (*tree_egm->elePhi)[j];
 
             l1mindr2.push_back(nearest_neighbour(l1pt, eta, phi,
                 *tree_l1->egEt, *tree_l1->egEta, *tree_l1->egPhi));
@@ -217,30 +217,30 @@ int flatten(char const* config, char const* output) {
                 ptfinal, etafinal, phifinal));
 
             /* evaluate id */
-            veto_id.push_back(pass_veto_id(tree_eg, j));
-            loose_id.push_back(pass_loose_id(tree_eg, j));
-            medium_id.push_back(pass_medium_id(tree_eg, j));
-            tight_id.push_back(pass_tight_id(tree_eg, j));
+            veto_id.push_back(pass_veto_id(tree_egm, j));
+            loose_id.push_back(pass_loose_id(tree_egm, j));
+            medium_id.push_back(pass_medium_id(tree_egm, j));
+            tight_id.push_back(pass_tight_id(tree_egm, j));
 
             if (tag < 0 && l1mindr2.back() < l1dr2 && hltmindr2.back() < hltdr2
-                && tight_id.back() && (*tree_eg->elePt)[j] > tag_pt_min) { tag = j; }
+                && tight_id.back() && (*tree_egm->elePt)[j] > tag_pt_min) { tag = j; }
         }
 
         if (tag < 0) { continue; }
 
-        for (int64_t j = 0; j < tree_eg->nEle; ++j) {
+        for (int64_t j = 0; j < tree_egm->nEle; ++j) {
             if (j == tag) { continue; }
 
-            if ((*tree_eg->eleCharge)[tag] == (*tree_eg->eleCharge)[j])
+            if ((*tree_egm->eleCharge)[tag] == (*tree_egm->eleCharge)[j])
                 continue;
 
-            tree_tnp->tag_pt = (*tree_eg->elePt)[tag];
-            tree_tnp->tag_eta = (*tree_eg->eleEta)[tag];
-            tree_tnp->tag_phi = (*tree_eg->elePhi)[tag];
-            tree_tnp->probe_pt = (*tree_eg->elePt)[j];
-            tree_tnp->probe_eta = (*tree_eg->eleEta)[j];
+            tree_tnp->tag_pt = (*tree_egm->elePt)[tag];
+            tree_tnp->tag_eta = (*tree_egm->eleEta)[tag];
+            tree_tnp->tag_phi = (*tree_egm->elePhi)[tag];
+            tree_tnp->probe_pt = (*tree_egm->elePt)[j];
+            tree_tnp->probe_eta = (*tree_egm->eleEta)[j];
             tree_tnp->probe_abseta = std::abs(tree_tnp->probe_eta);
-            tree_tnp->probe_phi = (*tree_eg->elePhi)[j];
+            tree_tnp->probe_phi = (*tree_egm->elePhi)[j];
             tree_tnp->dr2_l1 = l1mindr2[j];
             tree_tnp->dr2_hlt = hltmindr2[j];
             tree_tnp->pass_l1 = l1mindr2[j] < l1dr2;
@@ -252,13 +252,13 @@ int flatten(char const* config, char const* output) {
 
             tree_tnp->mass = std::sqrt(
                 ml_invariant_mass<coords::collider>(
-                    (*tree_eg->elePt)[tag],
-                    (*tree_eg->eleEta)[tag],
-                    (*tree_eg->elePhi)[tag],
+                    (*tree_egm->elePt)[tag],
+                    (*tree_egm->eleEta)[tag],
+                    (*tree_egm->elePhi)[tag],
                     0.000511f,
-                    (*tree_eg->elePt)[j],
-                    (*tree_eg->eleEta)[j],
-                    (*tree_eg->elePhi)[j],
+                    (*tree_egm->elePt)[j],
+                    (*tree_egm->eleEta)[j],
+                    (*tree_egm->elePhi)[j],
                     0.000511f));
 
             tree_tnp->weight = 1.f;

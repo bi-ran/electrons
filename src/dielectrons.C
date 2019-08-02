@@ -122,7 +122,7 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
     TFile* fout = new TFile(output.data(), "recreate");
 
     auto cents = std::make_shared<interval>(cent);
-    auto bins = std::make_shared<interval>(30, 60., 120., "mass (GeV/c^{2})"s);
+    auto bins = std::make_shared<interval>("mass (GeV/c^{2})"s, 30, 60., 120.);
     std::vector<int64_t> shape = { 3, cents->size(), 2 };
 
     auto minv = std::make_unique<history>("mass"s, "counts"s, bins, shape);
