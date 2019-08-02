@@ -51,20 +51,14 @@ int64_t scale_factors(char const* config, char const* output) {
         obj->SetMarkerSize(0.84);
     };
 
-    auto line_at_unity = [](int64_t, TH1* hframe) {
-        double low_edge = hframe->GetBinLowEdge(1);
-        double high_edge = hframe->GetBinLowEdge(hframe->GetNbinsX() + 1);
-
-        TLine* l1 = new TLine(low_edge, 1., high_edge, 1.);
-        l1->SetLineStyle(7);
-        l1->Draw();
-    };
-
     auto c1 = new paper("scale_factors_"s + output, hb);
     apply_default_style(c1, "pp #sqrt{s} = 5.02 TeV"s, 0., 1.);
     c1->legend(std::bind(coordinates, 0.54, 0.9, 0.84, 0.04));
     c1->format(frame_formatter);
     c1->format(graph_formatter);
+
+    std::vector<double> low_edges = { 0 };
+    std::vector<double> high_edges = { 0 };
 
     auto panels = static_cast<int64_t>(input_data.size());
     for (int64_t i = 0; i < panels; ++i) {
@@ -78,15 +72,24 @@ int64_t scale_factors(char const* config, char const* output) {
 
         auto hframe = (TH1F*)cd->GetPrimitive("frame");
 
+        low_edges.push_back(hframe->GetBinLowEdge(1));
+        high_edges.push_back(hframe->GetBinLowEdge(hframe->GetNbinsX() + 1));
+
         auto gmc = (TGraphAsymmErrors*)cm->GetPrimitive("hxy_fit_eff");
         auto gdata = (TGraphAsymmErrors*)cd->GetPrimitive("hxy_fit_eff");
 
         c1->add(hframe);
         c1->stack(gmc, "mc", categories[i]);
         c1->stack(gdata, "data", categories[i]);
-
-        c1->accessory(std::bind(line_at_unity, _1, hframe));
     }
+
+    auto line_at_unity = [&](int64_t index) {
+        TLine* l1 = new TLine(low_edges[index], 1., high_edges[index], 1.);
+        l1->SetLineStyle(7);
+        l1->Draw();
+    };
+
+    c1->accessory(line_at_unity);
 
     hb->ditto("incl", "barrel");
     hb->sketch();
