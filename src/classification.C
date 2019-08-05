@@ -276,7 +276,7 @@ std::pair<float, float> evaluate(configurer* conf, std::string const& id) {
 void draw(configurer* conf, std::string const& output) {
     auto ids = conf->get<std::vector<std::string>>("ids");
     auto effs = conf->get<std::vector<float>>("effs");
-    auto cols = conf->get<std::vector<int32_t>>("cols");
+    auto cols = conf->get<std::vector<std::string>>("cols");
     auto tag = conf->get<std::string>("tag");
 
     /* extract roc curve from output file */
@@ -309,17 +309,17 @@ void draw(configurer* conf, std::string const& output) {
     c1->adjust(roc, "l", "");
 
     /* lambda to draw marker at working points */
-    auto mark = [&](int64_t, std::pair<float, float> const& wp, int64_t c) {
+    auto mark = [&](int64_t, std::pair<float, float> const& wp, int32_t col) {
         TMarker* marker = new TMarker(wp.first, wp.second, 21);
         marker->SetMarkerSize(0.8);
-        marker->SetMarkerColor(colours[c]);
+        marker->SetMarkerColor(col);
         marker->Draw("same");
     };
 
-    std::unordered_map<std::string, int64_t> cmap;
+    std::unordered_map<std::string, int32_t> cmap;
 
     for (int64_t i = 0; i < static_cast<int64_t>(ids.size()); ++i)
-        cmap[ids[i]] = cols[i];
+        cmap[ids[i]] = TColor::GetColor(cols[i].data());
 
     /* print selections and evaluate efficiencies */
     auto variables = conf->get<std::vector<std::string>>("variables");
