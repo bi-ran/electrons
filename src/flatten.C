@@ -179,7 +179,7 @@ int flatten(char const* config, char const* output) {
         tree_trg->reset();
         forest->get(i);
 
-        if (tree_trg->accept(0L) != 1)
+        if (tree_trg->accept() != 1)
             continue;
 
         if (tree_egm->nEle < 2) { continue; }
