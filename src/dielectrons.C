@@ -101,6 +101,7 @@ static std::string index_to_string(int64_t i, int64_t j) {
 
 int64_t dielectrons(configurer* conf, std::string const& output) {
     auto input = conf->get<std::string>("input");
+    auto tag = conf->get<std::string>("tag");
     auto cent = conf->get<std::vector<float>>("cent");
 
     std::vector<std::vector<float>> scale_factors;
@@ -117,9 +118,7 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
 
     TFile* f = new TFile(input.data(), "read");
     TTree* t = (TTree*)f->Get("e");
-    auto e = new etree(1, 0, t);
-
-    TFile* fout = new TFile(output.data(), "recreate");
+    auto e = new etree(false, false, t);
 
     auto cents = std::make_shared<interval>(cent);
     auto bins = std::make_shared<interval>("mass (GeV/c^{2})"s, 30, 60., 120.);
@@ -264,7 +263,7 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
     hb->alias("os", "opp. sign");
     hb->alias("ss", "same sign");
 
-    auto c1 = new paper("mass", hb);
+    auto c1 = new paper("mass_"s + tag, hb);
     apply_default_style(c1,"PbPb #sqrt{s} = 5.02 TeV"s, 0., 1.);
     c1->legend(std::bind(coordinates, 0.135, 0.4, 0.75, 0.04));
     c1->format(formatter);
@@ -282,6 +281,10 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
     hb->sketch();
 
     c1->draw("pdf");
+
+    TFile* fout = new TFile(output.data(), "recreate");
+
+    minv->save(tag);
 
     fout->Write("", TObject::kOverwrite);
     fout->Close();
