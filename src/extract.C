@@ -1,5 +1,7 @@
-#include "TFile.h"
+#include "TAxis.h"
 #include "TChain.h"
+#include "TFile.h"
+#include "TH2.h"
 #include "TTree.h"
 
 #include <string>
@@ -22,10 +24,24 @@ int extract(char const* config, char const* output) {
 
     auto files = conf->get<std::vector<std::string>>("files");
     auto max_entries = conf->get<int64_t>("max_entries");
-    auto mc_branches = conf->get<bool>("mc_branches");
-    auto hlt_branches = conf->get<bool>("hlt_branches");
     auto paths = conf->get<std::vector<std::string>>("paths");
     auto skim = conf->get<std::vector<std::string>>("skim");
+    auto weights = conf->get<std::string>("weights");
+
+    auto mc_branches = conf->get<bool>("mc_branches");
+    auto hlt_branches = conf->get<bool>("hlt_branches");
+
+    auto apply_weight = !weights.empty();
+
+    TH2F* hweights = nullptr;
+    TAxis* xaxis = nullptr;
+    TAxis* yaxis = nullptr;
+    if (apply_weight) {
+        TFile* fw = new TFile(weights.data(), "read");
+        hweights = (TH2F*)fw->Get("hweights");
+        xaxis = hweights->GetXaxis();
+        yaxis = hweights->GetYaxis();
+    }
 
     auto forest = new train(files);
     auto chain_eg = forest->attach("ggHiNtuplizerGED/EventTree", true);
@@ -72,6 +88,13 @@ int extract(char const* config, char const* output) {
         tree_e->copy(tree_evt);
 
         /* extra variables */
+        for (int32_t j = 0; j < tree_e->nEle; ++j) {
+            auto weight = !apply_weight ? 1. : hweights->GetBinContent(
+                xaxis->FindBin((*tree_e->elePt)[j]),
+                yaxis->FindBin((*tree_e->eleEta)[j]));
+            tree_e->ele_weight->push_back(weight);
+        }
+
         if (mc_branches) {
             constexpr float max_dr2 = 0.15 * 0.15;
             for (int32_t j = 0; j < tree_e->nEle; ++j) {

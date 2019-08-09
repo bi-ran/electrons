@@ -17,6 +17,7 @@
 
 #define B_VEC_ELE_EXT(ACTION, ...)                                          \
     ACTION(sv<int32_t>,     gen_index,                  ## __VA_ARGS__)     \
+    ACTION(sv<float>,       ele_weight,                 ## __VA_ARGS__)     \
 
 class etree {
   public:
