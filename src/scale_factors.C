@@ -5,6 +5,8 @@
 #include "../git/paper-and-pencil/include/paper.h"
 #include "../git/paper-and-pencil/include/pencil.h"
 
+#include "../git/tricks-and-treats/include/trunk.h"
+
 #include "TCanvas.h"
 #include "TFile.h"
 #include "TGraphAsymmErrors.h"
@@ -48,8 +50,11 @@ int64_t scale_factors(char const* config, char const* output) {
     auto input_data = conf->get<std::vector<std::string>>("input_data");
     auto categories = conf->get<std::vector<std::string>>("categories");
     auto var = conf->get<std::string>("var");
+    auto tag = conf->get<std::string>("tag");
 
     auto panels = static_cast<int64_t>(input_data.size());
+
+    TFile* fout = new TFile(output, "update");
 
     auto hb = new pencil();
     hb->category("sample", "data", "mc", "sf");
@@ -83,7 +88,7 @@ int64_t scale_factors(char const* config, char const* output) {
         obj->SetMarkerSize(0.84);
     };
 
-    auto c1 = new paper("scale_factors_"s + output, hb);
+    auto c1 = new paper("scale_factors_"s + tag, hb);
     apply_default_style(c1, "pp #sqrt{s} = 5.02 TeV"s, 0., 1.);
     c1->legend(std::bind(coordinates, 0.54, 0.9, 0.84, 0.04));
     c1->format(graph_formatter);
@@ -98,6 +103,8 @@ int64_t scale_factors(char const* config, char const* output) {
     for (int64_t i = 0; i < panels; ++i) {
         TFile* fm = new TFile((dir + "/"s + input_mc[i]).data(), "read");
         TFile* fd = new TFile((dir + "/"s + input_data[i]).data(), "read");
+
+        fout->cd();
 
         TCanvas* cm = (TCanvas*)fm->Get(
             ("mc/efficiency/fit_eff_plots/probe_"s + var + "_PLOT"s).data());
@@ -120,6 +127,11 @@ int64_t scale_factors(char const* config, char const* output) {
         c1->stack(i + 1, gdata, "data", categories[i]);
         c1->stack(panels + i + 1, rframe);
         c1->stack(panels + i + 1, gratio, "sf");
+
+        /* set names and write to output */
+        gmc->Write(("g_fit_eff_"s + var + "_"s + categories[i]).data());
+        gdata->Write(("g_fit_eff_"s + var + "_"s + categories[i]).data());
+        gratio->Write(("g_eff_ratio_"s + var + "_"s + categories[i]).data());
     }
 
     auto line_at_unity = [&](int64_t index) {
@@ -132,8 +144,9 @@ int64_t scale_factors(char const* config, char const* output) {
     c1->accessory(line_at_unity);
 
     hb->sketch();
-
     c1->draw("pdf");
+
+    fout->Close();
 
     return 0;
 }
