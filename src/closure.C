@@ -16,6 +16,7 @@
 #include <vector>
 
 using namespace std::literals::string_literals;
+using namespace std::placeholders;
 
 static std::string index_to_string(int64_t i, int64_t j) {
     return std::to_string(i) + "_"s + std::to_string(j);
@@ -61,11 +62,6 @@ int closure(char const* config, char const* output) {
 
     /* lambda to customise y-axis range per canvas */
     auto formatter = [&](TH1* obj, int64_t index) {
-        obj->SetStats(0);
-        obj->SetMarkerSize(0.84);
-        obj->GetXaxis()->CenterTitle();
-        obj->GetYaxis()->CenterTitle();
-
         if (index > ncents) {
             obj->GetYaxis()->SetTitle("ratio");
             obj->SetAxisRange(0.0, 2.0, "Y");
@@ -85,15 +81,6 @@ int closure(char const* config, char const* output) {
         info->DrawLatexNDC(0.675, 0.84, buffer);
     };
 
-    /* lambda for line at unity */
-    auto line_at_unity = [&](int64_t index) {
-        if (index <= ncents) { return; }
-
-        TLine* l1 = new TLine(60, 1., 120, 1.);
-        l1->SetLineStyle(7);
-        l1->Draw();
-    };
-
     auto c1 = std::array<paper*, 3>();
     for (int64_t i = 0; i < 3; ++i) {
         c1[i] = new paper("closure_"s + types[i], hb);
@@ -101,7 +88,7 @@ int closure(char const* config, char const* output) {
         c1[i]->legend(std::bind(coordinates, 0.135, 0.4, 0.75, 0.04));
         c1[i]->jewellery(formatter);
         c1[i]->accessory(info_text);
-        c1[i]->accessory(line_at_unity);
+        c1[i]->accessory(std::bind(line_at, _1, 1, 60, 120));
 
         c1[i]->add(ncents * 2);
         c1[i]->divide(ncents, 2);

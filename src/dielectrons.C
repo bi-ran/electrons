@@ -224,14 +224,6 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
         printf("\n");
     }
 
-    /* lambda to customise y-axis range per canvas */
-    auto formatter = [](TH1* obj) {
-        obj->SetStats(0);
-        obj->SetMarkerSize(0.84);
-        obj->GetXaxis()->CenterTitle();
-        obj->GetYaxis()->CenterTitle();
-    };
-
     /* lambda to display mean, sigma from fit */
     auto info_text = [&](int64_t index) {
         int64_t i = (index - 1) / 3;
@@ -264,9 +256,8 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
     hb->alias("ss", "same sign");
 
     auto c1 = new paper("mass_"s + tag, hb);
-    apply_default_style(c1,"PbPb #sqrt{s} = 5.02 TeV"s, 0., 1.);
+    apply_default_style(c1,"PbPb #sqrt{s} = 5.02 TeV"s);
     c1->legend(std::bind(coordinates, 0.135, 0.4, 0.75, 0.04));
-    c1->format(formatter);
     c1->accessory(info_text);
     c1->divide(cents->size(), 3);
 
