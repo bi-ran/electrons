@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "../include/etree.h"
+#include "../include/lambdas.h"
 
 #include "../git/config/include/configurer.h"
 
@@ -17,7 +18,6 @@
 #include "../git/foliage/include/triggers.h"
 
 #include "../git/tricks-and-treats/include/train.h"
-#include "../git/tricks-and-treats/include/maglev.h"
 
 int extract(char const* config, char const* output) {
     auto conf = new configurer(config);
@@ -110,7 +110,7 @@ int extract(char const* config, char const* output) {
                     if ((*tree_e->mcPt)[k] < maxpt) { continue; }
 
                     float deta = ele_eta - (*tree_e->mcEta)[k];
-                    float dphi = ml_dphi(ele_phi, (*tree_e->mcPhi)[k]);
+                    float dphi = oadphi(ele_phi, (*tree_e->mcPhi)[k]);
                     float dr2 = dphi * dphi + deta * deta;
 
                     if (dr2 < max_dr2) {

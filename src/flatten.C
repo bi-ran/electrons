@@ -1,3 +1,4 @@
+#include "../include/lambdas.h"
 #include "../include/tnptree.h"
 
 #include "../git/config/include/configurer.h"
@@ -45,7 +46,7 @@ float nearest_neighbour(float pt, float eta, float phi,
         if (other_pt[i] < pt) { continue; }
 
         float deta = eta - other_eta[i];
-        float dphi = ml_dphi(phi, other_phi[i]);
+        float dphi = oadphi(phi, other_phi[i]);
         float dr2 = deta * deta + dphi * dphi;
 
         if (dr2 < mindr2) { mindr2 = dr2; }

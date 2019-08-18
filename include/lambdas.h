@@ -11,6 +11,8 @@
 
 #include "../git/paper-and-pencil/include/paper.h"
 
+#include "../git/tricks-and-treats/include/overflow_angles.h"
+
 auto _for_content = [](TH1* h, float (*f)(float)) {
     for (int64_t j = 1; j <= h->GetNbinsX(); ++j) {
         auto val = h->GetBinContent(j);
@@ -23,6 +25,10 @@ auto _for_content_index = [](TH1* h, float (*f)(float, int64_t)) {
         auto val = h->GetBinContent(j);
         h->SetBinContent(j, f(val, j));
     }
+};
+
+auto oadphi = [](float phi1, float phi2) {
+    return revert_radian(convert_radian(phi1) - convert_radian(phi2));
 };
 
 auto graph_formatter = [](TGraph* obj) {
