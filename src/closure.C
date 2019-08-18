@@ -7,6 +7,9 @@
 #include "../git/paper-and-pencil/include/paper.h"
 #include "../git/paper-and-pencil/include/pencil.h"
 
+#include "../git/tricks-and-treats/include/trunk.h"
+#include "../git/tricks-and-treats/include/zip.h"
+
 #include "TF1.h"
 #include "TFile.h"
 #include "TLatex.h"
@@ -25,18 +28,20 @@ static std::string index_to_string(int64_t i, int64_t j) {
 int closure(char const* config, char const* output) {
     auto conf = new configurer(config);
 
+    auto system = conf->get<std::string>("system");
+    auto tag = conf->get<std::string>("tag");
+
     auto data = conf->get<std::string>("data");
     auto mc = conf->get<std::string>("mc");
     auto cent = conf->get<std::vector<float>>("cent");
 
+    auto icent = std::make_shared<interval>(cent);
+
+    TH1::AddDirectory(false);
     TH1::SetDefaultSumw2();
 
     TFile* fd = new TFile(data.data(), "read");
     TFile* fm = new TFile(mc.data(), "read");
-
-    std::vector<std::string> types = { "bb"s, "be"s, "ee"s };
-
-    auto cents = std::make_shared<interval>(cent);
 
     auto hdata = new history(fd, "data_scaled_mass");
     auto hmc = new history(fm, "mc_scaled_smeared_mass");
@@ -58,10 +63,10 @@ int closure(char const* config, char const* output) {
 
     hb->ditto("ratio", "data");
 
-    auto ncents = cents->size();
+    auto ncents = icent->size();
 
     /* lambda to customise y-axis range per canvas */
-    auto formatter = [&](TH1* obj, int64_t index) {
+    auto ratio_style = [&](TH1* obj, int64_t index) {
         if (index > ncents) {
             obj->GetYaxis()->SetTitle("ratio");
             obj->SetAxisRange(0.0, 2.0, "Y");
@@ -77,18 +82,20 @@ int closure(char const* config, char const* output) {
 
         TLatex* info = new TLatex();
         info->SetTextFont(43);
-        info->SetTextSize(11);
+        info->SetTextSize(12);
         info->DrawLatexNDC(0.675, 0.84, buffer);
     };
+
+    std::vector<std::string> types = { "bb"s, "be"s, "ee"s };
 
     auto c1 = std::array<paper*, 3>();
     for (int64_t i = 0; i < 3; ++i) {
         c1[i] = new paper("closure_"s + types[i], hb);
-        apply_default_style(c1[i],"PbPb #sqrt{s} = 5.02 TeV"s, 0., 0.3);
+        apply_default_style(c1[i], system + " #sqrt{s} = 5.02 TeV"s, 0., 0.3);
         c1[i]->legend(std::bind(coordinates, 0.135, 0.4, 0.75, 0.04));
-        c1[i]->jewellery(formatter);
         c1[i]->accessory(info_text);
         c1[i]->accessory(std::bind(line_at, _1, 1, 60, 120));
+        c1[i]->jewellery(ratio_style);
 
         c1[i]->add(ncents * 2);
         c1[i]->divide(ncents, 2);
@@ -112,19 +119,19 @@ int closure(char const* config, char const* output) {
 
     for (auto c : c1) { c->draw("pdf"); }
 
-    TFile* fout = new TFile(output, "recreate");
-
-    fout->Write("", TObject::kOverwrite);
-    fout->Close();
+    in(output, [&]() {
+        hdata->save(tag);
+        hmc->save(tag);
+        hratio->save(tag);
+    });
 
     return 0;
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        printf("usage: %s [config] [output]\n", argv[0]);
-        return 1;
-    }
+    if (argc == 3)
+        return closure(argv[1], argv[2]);
 
-    return closure(argv[1], argv[2]);
+    printf("usage: %s [config] [output]\n", argv[0]);
+    return 1;
 }

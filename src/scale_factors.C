@@ -147,10 +147,9 @@ int64_t scale_factors(char const* config, char const* output) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        printf("usage: %s [config] [output]\n", argv[0]);
-        return 1;
-    }
+    if (argc == 3)
+        return scale_factors(argv[1], argv[2]);
 
-    return scale_factors(argv[1], argv[2]);
+    printf("usage: %s [config] [output]\n", argv[0]);
+    return 1;
 }

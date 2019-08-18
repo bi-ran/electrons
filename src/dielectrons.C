@@ -9,6 +9,7 @@
 #include "../git/paper-and-pencil/include/pencil.h"
 
 #include "../git/tricks-and-treats/include/maglev.h"
+#include "../git/tricks-and-treats/include/trunk.h"
 
 #include "TF1.h"
 #include "TFile.h"
@@ -99,7 +100,9 @@ static std::string index_to_string(int64_t i, int64_t j) {
     return std::to_string(i) + "_"s + std::to_string(j);
 }
 
-int64_t dielectrons(configurer* conf, std::string const& output) {
+int64_t dielectrons(char const* config, char const* output) {
+    auto conf = new configurer(config);
+
     auto input = conf->get<std::string>("input");
     auto tag = conf->get<std::string>("tag");
     auto cent = conf->get<std::vector<float>>("cent");
@@ -114,8 +117,6 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
         smear_factors.push_back(
             conf->get<std::vector<float>>(type + "_smears"));
 
-    TRandom3* gen = new TRandom3(144);
-
     TFile* f = new TFile(input.data(), "read");
     TTree* t = (TTree*)f->Get("e");
     auto e = new etree(false, false, t);
@@ -125,6 +126,8 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
     std::vector<int64_t> shape = { 3, cents->size(), 2 };
 
     auto minv = std::make_unique<history>("mass"s, "counts"s, bins, shape);
+
+    TRandom3* gen = new TRandom3(144);
 
     int64_t nentries = t->GetEntries();
     for (int64_t i = 0; i < nentries; ++i) {
@@ -180,11 +183,13 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
 
     for (int64_t i = 0; i < 3; ++i) {
         for (int64_t j = 0; j < cents->size(); ++j) {
-            fits[i][j] = new TF1(("f_"s + index_to_string(i, j)).data(),
+            auto index_string = index_to_string(i, j);
+
+            fits[i][j] = new TF1(("f_"s + index_string).data(),
                 f_double_sided_crystal_ball, 60, 120, 7);
 
             auto parameters = conf->get<std::vector<float>>(
-                "pars_"s + index_to_string(i, j));
+                "pars_"s + index_string);
             fits[i][j]->SetParameter(0, parameters[0]);
             fits[i][j]->SetParameter(1, parameters[1]);
             fits[i][j]->SetParameter(2, parameters[2]);
@@ -193,12 +198,12 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
             fits[i][j]->SetParameter(5, parameters[5]);
             fits[i][j]->SetParameter(6, parameters[6]);
 
-            (*minv)[x{i, j, 0}]->Fit(("f_"s + index_to_string(i, j)).data(),
+            (*minv)[x{i, j, 0}]->Fit(("f_"s + index_string).data(),
                 "LM", "", 61, 119);
 
-            conf->set<float>("mean_"s + index_to_string(i, j),
+            conf->set<float>("mean_"s + index_string,
                 fits[i][j]->GetParameter(1));
-            conf->set<float>("sigma_"s + index_to_string(i, j),
+            conf->set<float>("sigma_"s + index_string,
                 fits[i][j]->GetParameter(2));
         }
     }
@@ -208,7 +213,8 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
     for (int64_t i = 0; i < 3; ++i) {
         printf("std::vector<float> %s_scales =", types[i].data());
         for (int64_t j = 0; j < cents->size(); ++j) {
-            auto mean = conf->get<float>("mean_"s + index_to_string(i, j));
+            auto index_string = index_to_string(i, j);
+            auto mean = conf->get<float>("mean_"s + index_string);
             printf(" %.3f", 1.f + (91.1876 - mean) / mean);
         }
         printf("\n");
@@ -217,8 +223,9 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
     for (int64_t i = 0; i < 3; ++i) {
         printf("std::vector<float> %s_smears =", types[i].data());
         for (int64_t j = 0; j < cents->size(); ++j) {
-            auto ref = conf->get<float>("ref_"s + index_to_string(i, j));
-            auto sigma = conf->get<float>("sigma_"s + index_to_string(i, j));
+            auto index_string = index_to_string(i, j);
+            auto ref = conf->get<float>("ref_"s + index_string);
+            auto sigma = conf->get<float>("sigma_"s + index_string);
             printf(" %.3f", std::sqrt(std::abs(ref * ref - sigma * sigma)));
         }
         printf("\n");
@@ -229,6 +236,8 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
         int64_t i = (index - 1) / 3;
         int64_t j = (index - 1) % 3;
 
+        auto index_string = index_to_string(i, j);
+
         TLatex* info = new TLatex();
         info->SetTextFont(43);
         info->SetTextSize(11);
@@ -237,10 +246,10 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
 
         sprintf(buffer, "%.0f - %.0f%%", cent[j] / 2, cent[j + 1] / 2);
         info->DrawLatexNDC(0.675, 0.84, buffer);
-        auto mean = conf->get<float>("mean_"s + index_to_string(i, j));
+        auto mean = conf->get<float>("mean_"s + index_string);
         sprintf(buffer, "mean: %.2f", mean);
         info->DrawLatexNDC(0.675, 0.78, buffer);
-        auto sigma = conf->get<float>("sigma_"s + index_to_string(i, j));
+        auto sigma = conf->get<float>("sigma_"s + index_string);
         sprintf(buffer, "sigma: %.2f", sigma);
         info->DrawLatexNDC(0.675, 0.75, buffer);
     };
@@ -256,7 +265,7 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
     hb->alias("ss", "same sign");
 
     auto c1 = new paper("mass_"s + tag, hb);
-    apply_default_style(c1,"PbPb #sqrt{s} = 5.02 TeV"s);
+    apply_default_style(c1, "PbPb #sqrt{s} = 5.02 TeV"s);
     c1->legend(std::bind(coordinates, 0.135, 0.4, 0.75, 0.04));
     c1->accessory(info_text);
     c1->divide(cents->size(), 3);
@@ -270,28 +279,17 @@ int64_t dielectrons(configurer* conf, std::string const& output) {
 
     hb->set_binary("sign");
     hb->sketch();
-
     c1->draw("pdf");
 
-    TFile* fout = new TFile(output.data(), "recreate");
-
-    minv->save(tag);
-
-    fout->Write("", TObject::kOverwrite);
-    fout->Close();
+    in(output, [&]() { minv->save(tag); });
 
     return 0;
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        printf("usage: %s [config] [output]\n", argv[0]);
-        return 1;
-    }
+    if (argc == 3)
+        return dielectrons(argv[1], argv[2]);
 
-    auto conf = new configurer(argv[1]);
-
-    dielectrons(conf, argv[2]);
-
-    return 0;
+    printf("usage: %s [config] [output]\n", argv[0]);
+    return 1;
 }
