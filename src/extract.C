@@ -87,17 +87,15 @@ int extract(char const* config, char const* output) {
         tree_e->copy(tree_hlt);
         tree_e->copy(tree_evt);
 
-        /* extra variables */
-        for (int32_t j = 0; j < tree_e->nEle; ++j) {
-            auto weight = !apply_weight ? 1. : hweights->GetBinContent(
-                xaxis->FindBin((*tree_e->elePt)[j]),
-                yaxis->FindBin((*tree_e->eleEta)[j]));
-            tree_e->ele_weight->push_back(weight);
-        }
-
         if (mc_branches) {
             constexpr float max_dr2 = 0.15 * 0.15;
+
             for (int32_t j = 0; j < tree_e->nEle; ++j) {
+                auto weight = !apply_weight ? 1. : hweights->GetBinContent(
+                    xaxis->FindBin((*tree_e->elePt)[j]),
+                    yaxis->FindBin((*tree_e->eleEta)[j]));
+                tree_e->ele_weight->push_back(weight);
+
                 float maxpt = -1;
                 int32_t match = -1;
 
