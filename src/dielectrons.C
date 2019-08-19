@@ -107,6 +107,8 @@ int64_t dielectrons(char const* config, char const* output) {
     auto tag = conf->get<std::string>("tag");
     auto cent = conf->get<std::vector<float>>("cent");
 
+    auto mc_branches = conf->get<bool>("mc_branches");
+
     std::vector<std::vector<float>> scale_factors;
     for (auto const& type : { "bb"s, "be"s, "ee"s })
         scale_factors.push_back(
@@ -117,9 +119,17 @@ int64_t dielectrons(char const* config, char const* output) {
         smear_factors.push_back(
             conf->get<std::vector<float>>(type + "_smears"));
 
+    std::vector<std::vector<float>> ref_smear_factors;
+    for (auto const& type : { "bb"s, "be"s, "ee"s })
+        ref_smear_factors.push_back(
+            conf->get<std::vector<float>>("ref_"s + type + "_smears"));
+
+    TH1::AddDirectory(false);
+    TH1::SetDefaultSumw2();
+
     TFile* f = new TFile(input.data(), "read");
     TTree* t = (TTree*)f->Get("e");
-    auto e = new etree(false, false, t);
+    auto e = new etree(mc_branches, false, t);
 
     auto cents = std::make_shared<interval>(cent);
     auto bins = std::make_shared<interval>("mass (GeV/c^{2})"s, 30, 60., 120.);
@@ -173,7 +183,7 @@ int64_t dielectrons(char const* config, char const* output) {
                     (*e->elePhi)[k],
                     0.000511f));
 
-                float weight = e->Ncoll > 0 ? e->Ncoll / 1000. : 1.;
+                float weight = mc_branches ? e->Ncoll / 1000. : 1.;
                 (*minv)[x{type_x, cent_x, charge_x}]->Fill(mass, weight);
             }
         }
@@ -199,7 +209,7 @@ int64_t dielectrons(char const* config, char const* output) {
             fits[i][j]->SetParameter(6, parameters[6]);
 
             (*minv)[x{i, j, 0}]->Fit(("f_"s + index_string).data(),
-                "LM", "", 75, 105);
+                "LM", "", parameters[7], parameters[8]);
 
             conf->set<float>("mean_"s + index_string,
                 fits[i][j]->GetParameter(1));
@@ -224,8 +234,8 @@ int64_t dielectrons(char const* config, char const* output) {
         printf("std::vector<float> %s_smears =", types[i].data());
         for (int64_t j = 0; j < cents->size(); ++j) {
             auto index_string = index_to_string(i, j);
-            auto ref = conf->get<float>("ref_"s + index_string);
             auto sigma = conf->get<float>("sigma_"s + index_string);
+            auto ref = ref_smear_factors[i][j];
             printf(" %.3f", std::sqrt(std::abs(ref * ref - sigma * sigma)));
         }
         printf("\n");

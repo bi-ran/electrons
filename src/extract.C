@@ -28,6 +28,7 @@ int extract(char const* config, char const* output) {
     auto skim = conf->get<std::vector<std::string>>("skim");
     auto weights = conf->get<std::string>("weights");
 
+    auto heavyion = conf->get<bool>("heavyion");
     auto mc_branches = conf->get<bool>("mc_branches");
     auto hlt_branches = conf->get<bool>("hlt_branches");
 
@@ -86,6 +87,12 @@ int extract(char const* config, char const* output) {
         tree_e->copy(tree_egm);
         tree_e->copy(tree_hlt);
         tree_e->copy(tree_evt);
+
+        if (!heavyion) {
+            tree_e->hiBin = 0;
+            tree_e->hiHF = 0;
+            tree_e->Ncoll = 1;
+        }
 
         if (mc_branches) {
             constexpr float max_dr2 = 0.15 * 0.15;
