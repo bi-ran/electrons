@@ -164,11 +164,11 @@ int64_t dielectrons(char const* config, char const* output) {
                 auto sf = scf * gen->Gaus(1., smf);
 
                 auto mass = std::sqrt(ml_invariant_mass<coords::collider>(
-                    (*e->elePt)[j] * sf,
+                    (*e->eleEcalE)[j] / std::cosh((*e->eleEta)[j]) * sf,
                     (*e->eleEta)[j],
                     (*e->elePhi)[j],
                     0.000511f,
-                    (*e->elePt)[k] * sf,
+                    (*e->eleEcalE)[k] / std::cosh((*e->eleEta)[k]) * sf,
                     (*e->eleEta)[k],
                     (*e->elePhi)[k],
                     0.000511f));
@@ -199,7 +199,7 @@ int64_t dielectrons(char const* config, char const* output) {
             fits[i][j]->SetParameter(6, parameters[6]);
 
             (*minv)[x{i, j, 0}]->Fit(("f_"s + index_string).data(),
-                "LM", "", 61, 119);
+                "LM", "", 75, 105);
 
             conf->set<float>("mean_"s + index_string,
                 fits[i][j]->GetParameter(1));
