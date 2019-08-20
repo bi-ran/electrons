@@ -62,18 +62,18 @@ static int64_t passes_looseid_barrel(etree* t, int64_t index) {
     if (!(std::abs((*t->eleSCEta)[index]) < 1.442)) { return 0; }
 
     if (t->hiBin < 60) {
-        return (*t->eleHoverE)[index] < 0.1984
-            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0161
-            && std::abs((*t->eledEtaAtVtx)[index]) < 0.0053
-            && std::abs((*t->eledPhiAtVtx)[index]) < 0.0288
-            && std::abs((*t->eleEoverPInv)[index]) < 0.1129;
+        return (*t->eleHoverEBc)[index] < 0.1616
+            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0135
+            && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.0038
+            && std::abs((*t->eledPhiAtVtx)[index]) < 0.0376
+            && std::abs((*t->eleEoverPInv)[index]) < 0.0177;
     }
 
-    return (*t->eleHoverE)[index] < 0.1892
-        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0117
-        && std::abs((*t->eledEtaAtVtx)[index]) < 0.0071
-        && std::abs((*t->eledPhiAtVtx)[index]) < 0.0221
-        && std::abs((*t->eleEoverPInv)[index]) < 0.0405;
+    return (*t->eleHoverE)[index] < 0.1268
+        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0107
+        && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.0035
+        && std::abs((*t->eledPhiAtVtx)[index]) < 0.0327
+        && std::abs((*t->eleEoverPInv)[index]) < 0.0774;
 }
 
 static int64_t passes_looseid_endcap(etree* t, int64_t index) {
@@ -225,7 +225,7 @@ int64_t dielectrons(char const* config, char const* output) {
         for (int64_t j = 0; j < cents->size(); ++j) {
             auto index_string = index_to_string(i, j);
             auto mean = conf->get<float>("mean_"s + index_string);
-            printf(" %.3f", 1.f + (91.1876 - mean) / mean);
+            printf(" %.5f", 1.f + (91.1876 - mean) / mean);
         }
         printf("\n");
     }
@@ -233,10 +233,11 @@ int64_t dielectrons(char const* config, char const* output) {
     for (int64_t i = 0; i < 3; ++i) {
         printf("std::vector<float> %s_smears =", types[i].data());
         for (int64_t j = 0; j < cents->size(); ++j) {
-            auto index_string = index_to_string(i, j);
-            auto sigma = conf->get<float>("sigma_"s + index_string);
             auto ref = ref_smear_factors[i][j];
-            printf(" %.3f", std::sqrt(std::abs(ref * ref - sigma * sigma)));
+            auto sigma = conf->get<float>("sigma_"s + index_to_string(i, j));
+            auto relative = ref * ref - sigma * sigma;
+            auto factor = std::sqrt(std::abs(relative));
+            printf(" %.5f", relative < 0 ? -factor : factor);
         }
         printf("\n");
     }
