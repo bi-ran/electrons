@@ -110,12 +110,12 @@ int64_t dielectrons(char const* config, char const* output) {
     auto mc_branches = conf->get<bool>("mc_branches");
 
     std::vector<std::vector<float>> scale_factors;
-    for (auto const& type : { "bb"s, "be"s, "ee"s })
+    for (auto const& type : { "b"s, "e"s })
         scale_factors.push_back(
             conf->get<std::vector<float>>(type + "_scales"));
 
     std::vector<std::vector<float>> smear_factors;
-    for (auto const& type : { "bb"s, "be"s, "ee"s })
+    for (auto const& type : { "b"s, "e"s })
         smear_factors.push_back(
             conf->get<std::vector<float>>(type + "_smears"));
 
@@ -169,16 +169,20 @@ int64_t dielectrons(char const* config, char const* output) {
                 int64_t charge_x = std::abs(
                     (*e->eleCharge)[j] + (*e->eleCharge)[k]) / 2;
 
-                auto scf = scale_factors[type_x][cent_x];
-                auto smf = smear_factors[type_x][cent_x] / 91.1876;
-                auto sf = scf * gen->Gaus(1., smf);
+                auto scf1 = scale_factors[is_1_endcap][cent_x];
+                auto smf1 = smear_factors[is_1_endcap][cent_x] / 91.1876;
+                auto sf1 = scf1 * gen->Gaus(1., smf1);
+
+                auto scf2 = scale_factors[is_2_endcap][cent_x];
+                auto smf2 = smear_factors[is_2_endcap][cent_x] / 91.1876;
+                auto sf2 = scf2 * gen->Gaus(1., smf2);
 
                 auto mass = std::sqrt(ml_invariant_mass<coords::collider>(
-                    (*e->eleEcalE)[j] / std::cosh((*e->eleEta)[j]) * sf,
+                    (*e->eleEcalE)[j] / std::cosh((*e->eleEta)[j]) * sf1,
                     (*e->eleEta)[j],
                     (*e->elePhi)[j],
                     0.000511f,
-                    (*e->eleEcalE)[k] / std::cosh((*e->eleEta)[k]) * sf,
+                    (*e->eleEcalE)[k] / std::cosh((*e->eleEta)[k]) * sf2,
                     (*e->eleEta)[k],
                     (*e->elePhi)[k],
                     0.000511f));
