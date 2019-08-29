@@ -96,6 +96,10 @@ static int64_t passes_looseid_endcap(etree* t, int64_t index) {
         && std::abs((*t->eleEoverPInv)[index]) < 0.0281;
 }
 
+static float transverse_momentum(bool ecal, float var, float eta) {
+    return ecal ? var / std::cosh(eta) : var;
+}
+
 static std::string index_to_string(int64_t i, int64_t j) {
     return std::to_string(i) + "_"s + std::to_string(j);
 }
@@ -104,6 +108,7 @@ int64_t dielectrons(char const* config, char const* output) {
     auto conf = new configurer(config);
 
     auto input = conf->get<std::string>("input");
+    auto ecal = conf->get<bool>("ecal");
     auto tag = conf->get<std::string>("tag");
     auto cent = conf->get<std::vector<float>>("cent");
 
@@ -130,6 +135,8 @@ int64_t dielectrons(char const* config, char const* output) {
     TFile* f = new TFile(input.data(), "read");
     TTree* t = (TTree*)f->Get("e");
     auto e = new etree(mc_branches, false, t);
+
+    auto pt = ecal ? e->eleEcalE : e->elePt;
 
     auto cents = std::make_shared<interval>(cent);
     auto bins = std::make_shared<interval>("mass (GeV/c^{2})"s, 30, 60., 120.);
@@ -178,11 +185,11 @@ int64_t dielectrons(char const* config, char const* output) {
                 auto sf2 = scf2 * gen->Gaus(1., smf2);
 
                 auto mass = std::sqrt(ml_invariant_mass<coords::collider>(
-                    (*e->eleEcalE)[j] / std::cosh((*e->eleEta)[j]) * sf1,
+                    transverse_momentum(ecal, (*pt)[j], (*e->eleEta)[j]) * sf1,
                     (*e->eleEta)[j],
                     (*e->elePhi)[j],
                     0.000511f,
-                    (*e->eleEcalE)[k] / std::cosh((*e->eleEta)[k]) * sf2,
+                    transverse_momentum(ecal, (*pt)[k], (*e->eleEta)[k]) * sf2,
                     (*e->eleEta)[k],
                     (*e->elePhi)[k],
                     0.000511f));
