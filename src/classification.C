@@ -85,6 +85,7 @@ int classify(configurer* conf, std::string const& output,
              std::string const& id, float efficiency) {
     auto signal = conf->get<std::string>("signal");
     auto background = conf->get<std::string>("background");
+    auto base = conf->get<std::string>("base");
     auto variables = conf->get<std::vector<std::string>>("variables");
     auto lower = conf->get<std::vector<double>>("lower");
     auto upper = conf->get<std::vector<double>>("upper");
@@ -144,7 +145,7 @@ int classify(configurer* conf, std::string const& output,
 
     /* selections */
     TCut minpt = "elePt > 20";
-    TCut basic = "eleMissHits <= 1 && eleConvVeto && abs(eleIP3D) < 0.03";
+    TCut basic = base.data();
 
     TCut barrel = "abs(eleSCEta) < 1.442";
     TCut endcap = "abs(eleSCEta) > 1.556 && abs(eleSCEta) < 2.4";
@@ -213,6 +214,7 @@ int classify(configurer* conf, std::string const& output,
 std::pair<float, float> evaluate(configurer* conf, std::string const& id) {
     auto signal = conf->get<std::string>("signal");
     auto background = conf->get<std::string>("background");
+    auto base = conf->get<std::string>("base");
     auto variables = conf->get<std::vector<std::string>>("variables");
     auto type = conf->get<std::vector<uint32_t>>("type");
     auto lower = conf->get<std::vector<double>>(id + "_lower");
@@ -229,7 +231,7 @@ std::pair<float, float> evaluate(configurer* conf, std::string const& id) {
     TTree* tbkg = (TTree*)fbkg->Get("e");
 
     TCut minpt = "elePt > 20";
-    TCut basic = "eleMissHits <= 1 && eleConvVeto && abs(eleIP3D) < 0.03";
+    TCut basic = base.data();
 
     TCut barrel = "abs(eleSCEta) < 1.442";
     TCut endcap = "abs(eleSCEta) > 1.556 && abs(eleSCEta) < 2.4";
