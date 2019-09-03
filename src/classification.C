@@ -282,7 +282,7 @@ void draw(configurer* conf, std::string const& output) {
     auto tag = conf->get<std::string>("tag");
 
     /* extract roc curve from output file */
-    TFile* f = new TFile((ids[0] + "_"s + output).data(), "read");
+    TFile* f = new TFile(output.data(), "read");
     auto roc = (TH1F*)f->Get(
         (tag + "_"s + ids[0] + "/Method_CutsGA/CutsGA/MVA_CutsGA_rejBvsS").data());
 
@@ -363,6 +363,7 @@ int main(int argc, char* argv[]) {
     auto effs = conf->get<std::vector<float>>("effs");
     auto tag = conf->get<std::string>("tag");
 
+    auto base_stub = tag + "_"s + ids[0];
     auto base_tag = tag + "_"s + ids[0] + "_"s + argv[2];
 
     switch (stage) {
@@ -385,8 +386,8 @@ _stage2:
     draw(conf, base_tag);
 
 _stage3:
-    TMVA::efficiencies(tag.data(), base_tag.data(), 2, true);
-    TMVA::variables(tag.data(), base_tag.data(),
+    TMVA::efficiencies(base_stub.data(), base_tag.data(), 2, true);
+    TMVA::variables(base_stub.data(), base_tag.data(),
                     "InputVariables_Id", "comparison", false, true);
 
     return 0;
