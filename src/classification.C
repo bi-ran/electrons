@@ -5,6 +5,8 @@
 #include "../git/paper-and-pencil/include/paper.h"
 #include "../git/paper-and-pencil/include/pencil.h"
 
+#include "../git/tricks-and-treats/include/zip.h"
+
 #include "TCut.h"
 #include "TFile.h"
 #include "TH1.h"
@@ -35,14 +37,13 @@ int outliers(configurer* conf) {
     auto type = conf->get<std::vector<uint32_t>>("type");
     auto target = conf->get<float>("target");
 
-    auto count = static_cast<int64_t>(variables.size());
-
     for (auto const& t : type)
         if (t > 2) { printf("  type must belong in [0, 2]\n"); exit(1); }
 
     if (conf->test<std::vector<double>>("lower")
         || conf->test<std::vector<double>>("upper")) { return 0; }
 
+    auto count = static_cast<int64_t>(variables.size());
     std::vector<double> lower(count, std::numeric_limits<float>::lowest());
     std::vector<double> upper(count, std::numeric_limits<float>::max());
 
@@ -50,30 +51,29 @@ int outliers(configurer* conf) {
     TTree* t = (TTree*)f->Get("e");
 
     int64_t elements = t->Draw("elePt", "", "goff");
+    t->SetEstimate(elements);
 
-    for (int64_t i = 0; i < count; ++i) {
-        auto const& var = variables[i];
-
-        t->SetEstimate(elements);
-        t->Draw(var.data(), "", "goff");
+    zip([&](std::string const& variable, double& lower_, double& upper_,
+            uint32_t type_) {
+        t->Draw(variable.data(), "", "goff");
         auto data = t->GetV1();
 
         std::vector<double> values(data, data + elements);
         std::sort(std::begin(values), std::end(values));
 
-        switch (type[i]) {
+        switch (type_) {
             case 0:
-                upper[i] = values[target * elements];
+                upper_ = values[target * elements];
                 break;
             case 1:
-                lower[i] = values[(1. - target) * elements];
+                lower_ = values[(1. - target) * elements];
                 break;
             case 2:
-                lower[i] = values[((1. - target) / 2.) * elements];
-                upper[i] = values[((1. + target) / 2.) * elements];
+                lower_ = values[((1. - target) / 2.) * elements];
+                upper_ = values[((1. + target) / 2.) * elements];
                 break;
         }
-    }
+    }, variables, lower, upper, type);
 
     conf->set("lower", std::move(lower));
     conf->set("upper", std::move(upper));
@@ -105,14 +105,13 @@ int classify(configurer* conf, std::string const& output,
     if (lower.size() != size || upper.size() != size || type.size() != size) {
         printf("  inconsistent sizes\n"); exit(1); }
 
-    auto count = static_cast<int64_t>(size);
-    for (int64_t i = 0; i < count; ++i) {
-        if (lower[i] >= upper[i]) {
+    zip([&](std::string const& variable, double lower_, double upper_) {
+        if (lower_ >= upper_) {
             printf("  limits on %s: %f >= %f\n",
-                variables[i].data(), lower[i], upper[i]);
+                variable.data(), lower_, upper_);
             exit(1);
         }
-    }
+    }, variables, lower, upper);
 
     /* setup */
     TMVA::Tools::Instance();
@@ -170,7 +169,7 @@ int classify(configurer* conf, std::string const& output,
 
     auto settings = "!H:!V:FitMethod=GA:EffSel:Steps=30:Cycles=3:PopSize=400:"s
         + "SC_steps=10:SC_rate=5:SC_factor=0.95:"s;
-    for (int64_t i = 0; i < count; ++i) {
+    for (int64_t i = 0; i < static_cast<int64_t>(size); ++i) {
         settings += "VarProp["s + std::to_string(i) + "]="s
             + bounds[type[i]] + ":"s;
         settings += "CutRangeMin["s + std::to_string(i) + "]="s
@@ -248,16 +247,17 @@ std::pair<float, float> evaluate(configurer* conf, std::string const& id) {
     TCut w(weight.data());
 
     std::string id_string;
-    for (int64_t i = 0; i < static_cast<int64_t>(variables.size()); ++i) {
-        if (i != 0) {
+    zip([&](std::string const& variable, double lower_, double upper_,
+            uint32_t type_) {
+        id_string += "&&"s;
+        if (type_ != 0) {
+            id_string += std::to_string(lower_) + "<"s + variable; }
+        if (type_ == 2) {
             id_string += "&&"s; }
-        if (type[i] != 0) {
-            id_string += std::to_string(lower[i]) + "<"s + variables[i]; }
-        if (type[i] == 2) {
-            id_string += "&&"s; }
-        if (type[i] != 1) {
-            id_string += std::to_string(upper[i]) + ">"s + variables[i]; }
-    }
+        if (type_ != 1) {
+            id_string += std::to_string(upper_) + ">"s + variable; }
+    }, variables, lower, upper, type);
+    id_string.erase(0, 2);
 
     TCut id_sel(id_string.data());
 
@@ -319,27 +319,26 @@ void draw(configurer* conf, std::string const& output) {
     };
 
     std::unordered_map<std::string, int32_t> cmap;
-
-    for (int64_t i = 0; i < static_cast<int64_t>(ids.size()); ++i)
-        cmap[ids[i]] = TColor::GetColor(cols[i].data());
+    zip([&](std::string const& id, std::string const& col) {
+        cmap[id] = TColor::GetColor(col.data()); }, ids, cols);
 
     /* print selections and evaluate efficiencies */
     auto variables = conf->get<std::vector<std::string>>("variables");
     auto type = conf->get<std::vector<uint32_t>>("type");
-    auto count = static_cast<int64_t>(variables.size());
 
     for (auto const& id : ids) {
         auto lower = conf->get<std::vector<double>>(id + "_lower"s);
         auto upper = conf->get<std::vector<double>>(id + "_upper"s);
 
         printf("  %s:\n", id.data());
-        for (int64_t i = 0; i < count; ++i) {
-            printf("%24s: [ ", variables[i].data());
-            if (type[i] == 0) { printf("    -inf, "); }
-            else { printf("%8.5f, ", lower[i]); }
-            if (type[i] == 1) { printf("+inf     ]\n"); }
-            else { printf("%8.5f ]\n", upper[i]); }
-        }
+        zip([&](std::string const& variable, double lower_, double upper_,
+                uint32_t type_) {
+            printf("%24s: [ ", variable.data());
+            if (type_ == 0) { printf("    -inf, "); }
+            else { printf("%8.5f, ", lower_); }
+            if (type_ == 1) { printf("+inf     ]\n"); }
+            else { printf("%8.5f ]\n", upper_); }
+        }, variables, lower, upper, type);
 
         printf("\n");
 
@@ -377,10 +376,10 @@ _stage0:
     outliers(conf);
 
 _stage1:
-    for (int64_t i = 0; i < static_cast<int64_t>(ids.size()); ++i) {
-        auto full_tag = tag + "_"s + ids[i] + "_"s + argv[2];
-        classify(conf, full_tag, ids[i], effs[i]);
-    }
+    zip([&](std::string const& id, float eff) {
+        auto full_tag = tag + "_"s + id + "_"s + argv[2];
+        classify(conf, full_tag, id, eff);
+    }, ids, effs);
 
 _stage2:
     draw(conf, base_tag);
