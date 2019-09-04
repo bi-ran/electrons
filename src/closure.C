@@ -33,6 +33,7 @@ int closure(char const* config, char const* output) {
 
     auto data = conf->get<std::string>("data");
     auto mc = conf->get<std::string>("mc");
+    auto labels = conf->get<std::vector<std::string>>("labels");
     auto cent = conf->get<std::vector<float>>("cent");
 
     auto icent = std::make_shared<interval>(cent);
@@ -43,8 +44,8 @@ int closure(char const* config, char const* output) {
     TFile* fd = new TFile(data.data(), "read");
     TFile* fm = new TFile(mc.data(), "read");
 
-    auto hdata = new history(fd, "data_scaled_mass");
-    auto hmc = new history(fm, "mc_scaled_smeared_mass");
+    auto hdata = new history(fd, "data_"s + labels[0] + "_mass");
+    auto hmc = new history(fm, "mc_"s + labels[1] + "_mass");
 
     auto normalise = [](TH1* h) { h->Scale(1. / h->Integral()); };
     hdata->apply(normalise); hmc->apply(normalise);
