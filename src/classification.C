@@ -37,12 +37,6 @@ int outliers(configurer* conf) {
     auto type = conf->get<std::vector<uint32_t>>("type");
     auto target = conf->get<float>("target");
 
-    for (auto const& t : type)
-        if (t > 2) { printf("  type must belong in [0, 2]\n"); exit(1); }
-
-    if (conf->test<std::vector<double>>("lower")
-        || conf->test<std::vector<double>>("upper")) { return 0; }
-
     auto count = static_cast<int64_t>(variables.size());
     std::vector<double> lower(count, std::numeric_limits<float>::lowest());
     std::vector<double> upper(count, std::numeric_limits<float>::max());
@@ -368,23 +362,19 @@ int main(int argc, char* argv[]) {
     switch (stage) {
         case 0: goto _stage0;
         case 1: goto _stage1;
-        case 2: goto _stage2;
-        case 3: goto _stage3;
     }
 
 _stage0:
     outliers(conf);
 
-_stage1:
     zip([&](std::string const& id, float eff) {
         auto full_tag = tag + "_"s + id + "_"s + argv[2];
         classify(conf, full_tag, id, eff);
     }, ids, effs);
 
-_stage2:
     draw(conf, base_tag);
 
-_stage3:
+_stage1:
     TMVA::efficiencies(base_stub.data(), base_tag.data(), 2, true);
     TMVA::variables(base_stub.data(), base_tag.data(),
                     "InputVariables_Id", "comparison", false, true);
