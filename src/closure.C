@@ -44,13 +44,13 @@ int closure(char const* config, char const* output) {
     TFile* fd = new TFile(data.data(), "read");
     TFile* fm = new TFile(mc.data(), "read");
 
-    auto hdata = new history(fd, "data_"s + labels[0] + "_mass");
-    auto hmc = new history(fm, "mc_"s + labels[1] + "_mass");
+    auto hdata = new history<TH1F>(fd, "data_"s + labels[0] + "_mass");
+    auto hmc = new history<TH1F>(fm, "mc_"s + labels[1] + "_mass");
 
     auto normalise = [](TH1* h) { h->Scale(1. / h->Integral()); };
     hdata->apply(normalise); hmc->apply(normalise);
 
-    auto hratio = new history(*hdata, "ratio");
+    auto hratio = new history<TH1F>(*hdata, "ratio");
 
     auto hb = new pencil();
     hb->category("type", "bb", "be", "ee");

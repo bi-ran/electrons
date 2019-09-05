@@ -138,11 +138,11 @@ int64_t dielectrons(char const* config, char const* output) {
 
     auto pt = ecal ? e->eleEcalE : e->elePt;
 
-    auto cents = std::make_shared<interval>(cent);
-    auto bins = std::make_shared<interval>("mass (GeV/c^{2})"s, 30, 60., 120.);
+    auto cents = new interval(cent);
+    auto bins = new interval("mass (GeV/c^{2})"s, 30, 60., 120.);
     std::vector<int64_t> shape = { 3, cents->size(), 2 };
 
-    auto minv = std::make_unique<history>("mass"s, "counts"s, bins, shape);
+    auto minv = new history<TH1F>("mass"s, "counts"s, bins, shape);
 
     TRandom3* gen = new TRandom3(144);
 
