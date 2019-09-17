@@ -56,7 +56,7 @@ static int64_t within_hem_failure_region(etree* t, int64_t index) {
         && (*t->eleSCPhi)[index] > -1.6);
 }
 
-static int64_t passes_looseid_barrel(etree* t, int64_t index) {
+int64_t passes_looseid_barrel(etree* t, int64_t index) {
     if (!pass_basic_selections(t, index)) { return 0; }
     if (within_hem_failure_region(t, index)) { return 0; }
     if (!(std::abs((*t->eleSCEta)[index]) < 1.442)) { return 0; }
@@ -69,31 +69,71 @@ static int64_t passes_looseid_barrel(etree* t, int64_t index) {
             && std::abs((*t->eleEoverPInv)[index]) < 0.0177;
     }
 
-    return (*t->eleHoverE)[index] < 0.1268
+    return (*t->eleHoverEBc)[index] < 0.1268
         && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0107
         && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.0035
         && std::abs((*t->eledPhiAtVtx)[index]) < 0.0327
         && std::abs((*t->eleEoverPInv)[index]) < 0.0774;
 }
 
-static int64_t passes_looseid_endcap(etree* t, int64_t index) {
+int64_t passes_looseid_endcap(etree* t, int64_t index) {
     if (!pass_basic_selections(t, index)) { return 0; }
     if (within_hem_failure_region(t, index)) { return 0; }
     if (!(std::abs((*t->eleSCEta)[index]) > 1.556)) { return 0; }
 
     if (t->hiBin < 60) {
-        return (*t->eleHoverE)[index] < 0.1910
-            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0479
-            && std::abs((*t->eledEtaAtVtx)[index]) < 0.0145
-            && std::abs((*t->eledPhiAtVtx)[index]) < 0.0516
-            && std::abs((*t->eleEoverPInv)[index]) < 0.0115;
+        return (*t->eleHoverEBc)[index] < 0.1317
+            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0466
+            && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.0063
+            && std::abs((*t->eledPhiAtVtx)[index]) < 0.1186
+            && std::abs((*t->eleEoverPInv)[index]) < 0.0201;
     }
 
-    return (*t->eleHoverE)[index] < 0.1627
-        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0447
-        && std::abs((*t->eledEtaAtVtx)[index]) < 0.0108
-        && std::abs((*t->eledPhiAtVtx)[index]) < 0.0301
-        && std::abs((*t->eleEoverPInv)[index]) < 0.0281;
+    return (*t->eleHoverEBc)[index] < 0.0977
+        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0339
+        && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.0067
+        && std::abs((*t->eledPhiAtVtx)[index]) < 0.0838
+        && std::abs((*t->eleEoverPInv)[index]) < 0.0193;
+}
+
+int64_t passes_mediumid_barrel(etree* t, int64_t index) {
+    if (!pass_basic_selections(t, index)) { return 0; }
+    if (within_hem_failure_region(t, index)) { return 0; }
+    if (!(std::abs((*t->eleSCEta)[index]) < 1.442)) { return 0; }
+
+    if (t->hiBin < 60) {
+        return (*t->eleHoverEBc)[index] < 0.1589
+            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0116
+            && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.0037
+            && std::abs((*t->eledPhiAtVtx)[index]) < 0.0224
+            && std::abs((*t->eleEoverPInv)[index]) < 0.0173;
+    }
+
+    return (*t->eleHoverEBc)[index] < 0.0311
+        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0101
+        && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.0033
+        && std::abs((*t->eledPhiAtVtx)[index]) < 0.0210
+        && std::abs((*t->eleEoverPInv)[index]) < 0.0701;
+}
+
+int64_t passes_mediumid_endcap(etree* t, int64_t index) {
+    if (!pass_basic_selections(t, index)) { return 0; }
+    if (within_hem_failure_region(t, index)) { return 0; }
+    if (!(std::abs((*t->eleSCEta)[index]) > 1.556)) { return 0; }
+
+    if (t->hiBin < 60) {
+        return (*t->eleHoverEBc)[index] < 0.1092
+            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0418
+            && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.0062
+            && std::abs((*t->eledPhiAtVtx)[index]) < 0.0373
+            && std::abs((*t->eleEoverPInv)[index]) < 0.0133;
+    }
+
+    return (*t->eleHoverEBc)[index] < 0.0810
+        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.0316
+        && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.0051
+        && std::abs((*t->eledPhiAtVtx)[index]) < 0.0384
+        && std::abs((*t->eleEoverPInv)[index]) < 0.0192;
 }
 
 static float transverse_momentum(bool ecal, float var, float eta) {
