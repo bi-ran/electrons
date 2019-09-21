@@ -2,6 +2,7 @@
 
 #include "../git/config/include/configurer.h"
 
+#include "../git/history/include/interval.h"
 #include "../git/history/include/history.h"
 
 #include "../git/paper-and-pencil/include/paper.h"
@@ -34,9 +35,9 @@ int closure(char const* config, char const* output) {
     auto data = conf->get<std::string>("data");
     auto mc = conf->get<std::string>("mc");
     auto labels = conf->get<std::vector<std::string>>("labels");
-    auto cent = conf->get<std::vector<float>>("cent");
+    auto dcent = conf->get<std::vector<float>>("cent");
 
-    auto icent = std::make_shared<interval>(cent);
+    auto icent = new interval(dcent);
 
     TH1::AddDirectory(false);
     TH1::SetDefaultSumw2();
@@ -79,7 +80,7 @@ int closure(char const* config, char const* output) {
         int64_t j = (index - 1) % 3;
 
         char buffer[128];
-        sprintf(buffer, "%.0f - %.0f%%", cent[j] / 2, cent[j + 1] / 2);
+        sprintf(buffer, "%.0f - %.0f%%", dcent[j] / 2, dcent[j + 1] / 2);
 
         TLatex* info = new TLatex();
         info->SetTextFont(43);

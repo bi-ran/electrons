@@ -3,6 +3,7 @@
 
 #include "../git/config/include/configurer.h"
 
+#include "../git/history/include/interval.h"
 #include "../git/history/include/history.h"
 
 #include "../git/paper-and-pencil/include/paper.h"
@@ -22,6 +23,7 @@
 #include <vector>
 
 using namespace std::literals::string_literals;
+using namespace std::placeholders;
 
 double f_double_sided_crystal_ball(double* x, double* params) {
     double x0 = x[0];
@@ -150,7 +152,7 @@ int64_t dielectrons(char const* config, char const* output) {
     auto input = conf->get<std::string>("input");
     auto ecal = conf->get<bool>("ecal");
     auto tag = conf->get<std::string>("tag");
-    auto cent = conf->get<std::vector<float>>("cent");
+    auto dcent = conf->get<std::vector<float>>("cent");
 
     auto mc_branches = conf->get<bool>("mc_branches");
 
@@ -178,11 +180,12 @@ int64_t dielectrons(char const* config, char const* output) {
 
     auto pt = ecal ? e->eleEcalE : e->elePt;
 
-    auto cents = new interval(cent);
-    auto bins = new interval("mass (GeV/c^{2})"s, 30, 60., 120.);
+    auto cents = new interval(dcent);
+    auto imass = new interval("mass (GeV/c^{2})"s, 30, 60., 120.);
     std::vector<int64_t> shape = { 3, cents->size(), 2 };
 
-    auto minv = new history<TH1F>("mass"s, "counts"s, bins, shape);
+    auto fm = std::bind(&interval::book<TH1F>, imass, _1, _2, _3);
+    auto minv = new history<TH1F>("mass"s, "counts"s, fm, shape);
 
     TRandom3* gen = new TRandom3(144);
 
@@ -306,7 +309,7 @@ int64_t dielectrons(char const* config, char const* output) {
 
         char buffer[128];
 
-        sprintf(buffer, "%.0f - %.0f%%", cent[j] / 2, cent[j + 1] / 2);
+        sprintf(buffer, "%.0f - %.0f%%", dcent[j] / 2, dcent[j + 1] / 2);
         info->DrawLatexNDC(0.675, 0.84, buffer);
         auto mean = conf->get<float>("mean_"s + index_string);
         sprintf(buffer, "mean: %.2f", mean);
