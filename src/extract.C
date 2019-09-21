@@ -56,80 +56,80 @@ int extract(char const* config, char const* output) {
 
     (*forest)();
 
-    auto tree_egg = new eggen(chain_eg, mc_branches);
-    auto tree_egm = new electrons(chain_eg);
-    auto tree_hlt = new triggers(chain_hlt, paths);
-    auto tree_evt = new event(chain_evt, mc_branches);
+    auto tegg = harvest<eggen>(chain_eg, mc_branches);
+    auto tegm = harvest<electrons>(chain_eg);
+    auto thlt = harvest<triggers>(chain_hlt, paths);
+    auto tevt = harvest<event>(chain_evt, mc_branches);
 
     TTree::SetMaxTreeSize(1000000000000LL);
 
     TFile* fout = new TFile(output, "recreate");
     TTree* tout = new TTree("e", "electrons");
-    auto tree_e = new etree(tout, mc_branches, hlt_branches);
+    auto te = new etree(tout, mc_branches, hlt_branches);
 
     int64_t nentries = forest->count();
     if (max_entries) nentries = std::min(nentries, max_entries);
     for (int64_t i = 0; i < nentries; ++i) {
-        tree_e->clear();
+        te->clear();
 
         if (i % 10000 == 0)
             printf("entry: %li/%li\n", i, nentries);
 
         forest->get(i);
 
-        if (tree_egm->nEle < 1) { continue; }
+        if (tegm->nEle < 1) { continue; }
 
         if (!skim.empty()) {
             bool pass_skim = false;
             for (auto const& path : skim)
-                if (tree_hlt->accept(path) == 1)
+                if (thlt->accept(path) == 1)
                     pass_skim = true;
 
             if (!pass_skim) { continue; }
         }
 
-        tree_e->copy(tree_egg);
-        tree_e->copy(tree_egm);
-        tree_e->copy(tree_hlt);
-        tree_e->copy(tree_evt);
+        te->copy(tegg);
+        te->copy(tegm);
+        te->copy(thlt);
+        te->copy(tevt);
 
         if (!heavyion) {
-            tree_e->hiBin = 0;
-            tree_e->hiHF = 0;
-            tree_e->Ncoll = 1;
+            te->hiBin = 0;
+            te->hiHF = 0;
+            te->Ncoll = 1;
         }
 
         if (mc_branches) {
             constexpr float max_dr2 = 0.15 * 0.15;
 
-            for (int32_t j = 0; j < tree_e->nEle; ++j) {
+            for (int32_t j = 0; j < te->nEle; ++j) {
                 auto weight = !apply_weight ? 1. : hweights->GetBinContent(
-                    xaxis->FindBin((*tree_e->elePt)[j]),
-                    yaxis->FindBin((*tree_e->eleEta)[j]));
-                tree_e->ele_weight->push_back(weight);
+                    xaxis->FindBin((*te->elePt)[j]),
+                    yaxis->FindBin((*te->eleEta)[j]));
+                te->ele_weight->push_back(weight);
 
                 float maxpt = -1;
                 int32_t match = -1;
 
-                float ele_eta = (*tree_e->eleEta)[j];
-                float ele_phi = (*tree_e->elePhi)[j];
+                float ele_eta = (*te->eleEta)[j];
+                float ele_phi = (*te->elePhi)[j];
 
-                for (int32_t k = 0; k < tree_e->nMC; ++k) {
-                    if (std::abs((*tree_e->mcPID)[k]) != 11) { continue; }
-                    if ((*tree_e->mcStatus)[k] != 1) { continue; }
-                    if ((*tree_e->mcPt)[k] < maxpt) { continue; }
+                for (int32_t k = 0; k < te->nMC; ++k) {
+                    if (std::abs((*te->mcPID)[k]) != 11) { continue; }
+                    if ((*te->mcStatus)[k] != 1) { continue; }
+                    if ((*te->mcPt)[k] < maxpt) { continue; }
 
-                    float deta = ele_eta - (*tree_e->mcEta)[k];
-                    float dphi = oadphi(ele_phi, (*tree_e->mcPhi)[k]);
+                    float deta = ele_eta - (*te->mcEta)[k];
+                    float dphi = oadphi(ele_phi, (*te->mcPhi)[k]);
                     float dr2 = dphi * dphi + deta * deta;
 
                     if (dr2 < max_dr2) {
-                        maxpt = (*tree_e->mcPt)[k];
+                        maxpt = (*te->mcPt)[k];
                         match = k;
                     }
                 }
 
-                tree_e->gen_index->push_back(match);
+                te->gen_index->push_back(match);
             }
         }
 

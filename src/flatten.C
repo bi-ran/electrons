@@ -4,8 +4,8 @@
 #include "../git/config/include/configurer.h"
 
 #include "../git/foliage/include/electrons.h"
-#include "../git/foliage/include/hltobjects.h"
-#include "../git/foliage/include/l1objects.h"
+#include "../git/foliage/include/hltobjs.h"
+#include "../git/foliage/include/l1objs.h"
 #include "../git/foliage/include/triggers.h"
 
 #include "../git/tricks-and-treats/include/maglev.h"
@@ -165,10 +165,10 @@ int flatten(char const* config, char const* output) {
 
     (*forest)();
 
-    auto tree_egm = new electrons(chain_eg);
-    auto tree_l1 = new l1objects(chain_l1);
-    auto tree_hlt = new hltobjects(chain_hlt);
-    auto tree_trg = new triggers(chain_trg, paths);
+    auto tree_egm = harvest<electrons>(chain_eg);
+    auto tree_trg = harvest<triggers>(chain_trg, paths);
+    auto tree_l1 = harvest<l1objs>(chain_l1);
+    auto tree_hlt = harvest<hltobjs>(chain_hlt);
 
     TTree::SetMaxTreeSize(1000000000000LL);
 
