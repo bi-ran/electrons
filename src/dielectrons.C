@@ -330,7 +330,7 @@ int64_t dielectrons(char const* config, char const* output) {
     hb->alias("ss", "same sign");
 
     auto c1 = new paper("mass_"s + tag, hb);
-    apply_default_style(c1, "PbPb #sqrt{s} = 5.02 TeV"s);
+    apply_style(c1, "PbPb #sqrt{s} = 5.02 TeV"s);
     c1->legend(std::bind(coordinates, 0.135, 0.4, 0.75, 0.04));
     c1->accessory(info_text);
     c1->divide(cents->size(), 3);

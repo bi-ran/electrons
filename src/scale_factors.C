@@ -85,7 +85,7 @@ int64_t scale_factors(char const* config, char const* output) {
     };
 
     auto c1 = new paper("scale_factors_"s + tag, hb);
-    apply_default_style(c1, "pp #sqrt{s} = 5.02 TeV"s, 0., 1.);
+    apply_style(c1, "pp #sqrt{s} = 5.02 TeV"s, 0., 1.);
     c1->legend(std::bind(coordinates, 0.54, 0.9, 0.84, 0.04));
     c1->jewellery(frame_formatter);
 

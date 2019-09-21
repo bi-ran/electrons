@@ -8,8 +8,9 @@
 #include "../git/foliage/include/l1objects.h"
 #include "../git/foliage/include/triggers.h"
 
-#include "../git/tricks-and-treats/include/train.h"
 #include "../git/tricks-and-treats/include/maglev.h"
+#include "../git/tricks-and-treats/include/overflow_angles.h"
+#include "../git/tricks-and-treats/include/train.h"
 
 #include "TFile.h"
 #include "TTree.h"
@@ -20,6 +21,10 @@
 #include <vector>
 
 using namespace std::literals::string_literals;
+
+auto oadphi = [](float phi1, float phi2) {
+    return revert_radian(convert_radian(phi1) - convert_radian(phi2));
+};
 
 std::vector<int64_t> clean(std::vector<double> const& values, int64_t size) {
     std::vector<double> handled;

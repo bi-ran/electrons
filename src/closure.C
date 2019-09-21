@@ -93,7 +93,7 @@ int closure(char const* config, char const* output) {
     auto c1 = std::array<paper*, 3>();
     for (int64_t i = 0; i < 3; ++i) {
         c1[i] = new paper("closure_"s + types[i], hb);
-        apply_default_style(c1[i], system + " #sqrt{s} = 5.02 TeV"s, 0., 0.3);
+        apply_style(c1[i], system + " #sqrt{s} = 5.02 TeV"s, 0., 0.3);
         c1[i]->legend(std::bind(coordinates, 0.135, 0.4, 0.75, 0.04));
         c1[i]->accessory(info_text);
         c1[i]->accessory(std::bind(line_at, _1, 1, 60, 120));

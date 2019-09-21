@@ -281,11 +281,11 @@ void draw(configurer* conf, std::string const& output) {
         (tag + "_"s + ids[0] + "/Method_CutsGA/CutsGA/MVA_CutsGA_rejBvsS").data());
 
     /* lambda to format histogram approriately */
-    auto formatter = [](TH1* obj, double min, double max) {
+    auto formatter = [](TH1* obj) {
         obj->SetStats(0);
         obj->SetMarkerSize(0.4);
         obj->SetMarkerStyle(20);
-        obj->SetAxisRange(min, max, "Y");
+        obj->SetAxisRange(0., 1., "Y");
         obj->SetTitle(";signal efficiency;background rejection");
         obj->GetXaxis()->CenterTitle();
         obj->GetYaxis()->CenterTitle();
@@ -297,8 +297,7 @@ void draw(configurer* conf, std::string const& output) {
         label.erase(std::begin(label) + ext, std::end(label));
 
     auto c1 = new paper("working-points-"s + label);
-    apply_default_style(c1, "pp #sqrt{s} = 5.02 TeV"s,
-        std::bind(formatter, _1, 0., 1.));
+    apply_style(c1, "pp #sqrt{s} = 5.02 TeV"s, formatter);
     c1->set(paper::key);
 
     c1->add(roc);
