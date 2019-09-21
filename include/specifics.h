@@ -10,7 +10,8 @@ bool within_hem_failure_region(T* t, int64_t i) {
 
 template <typename T>
 bool passes_basic_electron_selections(T* t, int64_t i) {
-    return (*t->eleMissHits)[i] <= 1 && (*t->eleIP3D)[i] < 0.03;
+    return (*t->eleConvVeto)[i] && (*t->eleMissHits)[i] <= 1
+        && (*t->eleIP3D)[i] < 0.03;
 }
 
 enum ip { incl, cent, peri, nip };
@@ -22,16 +23,16 @@ enum var { hoe, see, deta, dphi, eop, nele,
 constexpr float ecuts[ip::nip][det::ndet][wp::nwp][var::nele] = {
     {    /* ip::incl */
         {    /* det::barrel */
-            {    -1.,    -1.,    -1.,    -1.,    -1. }, /* wp::veto */
-            {    -1.,    -1.,    -1.,    -1.,    -1. }, /* wp::loose */
-            {    -1.,    -1.,    -1.,    -1.,    -1. }, /* wp::medium */
-            {    -1.,    -1.,    -1.,    -1.,    -1. }, /* wp::tight */
+            { 0.0607, 0.0103, 0.0048, 0.0625, 0.1327 }, /* wp::veto */
+            { 0.0271, 0.0102, 0.0032, 0.0394, 0.0530 }, /* wp::loose */
+            { 0.0246, 0.0097, 0.0024, 0.0292, 0.0447 }, /* wp::medium */
+            { 0.0205, 0.0093, 0.0023, 0.0279, 0.0392 }, /* wp::tight */
             {    -1.,    -1.,    -1.,    -1.,    -1. }  /* wp::claustro */
         }, { /* det::endcap */
-            {    -1.,    -1.,    -1.,    -1.,    -1. }, /* wp::veto */
-            {    -1.,    -1.,    -1.,    -1.,    -1. }, /* wp::loose */
-            {    -1.,    -1.,    -1.,    -1.,    -1. }, /* wp::medium */
-            {    -1.,    -1.,    -1.,    -1.,    -1. }, /* wp::tight */
+            { 0.0452, 0.0306, 0.0066, 0.0881, 0.9066 }, /* wp::veto */
+            { 0.0375, 0.0295, 0.0057, 0.0382, 0.0236 }, /* wp::loose */
+            { 0.0113, 0.0294, 0.0056, 0.0283, 0.0234 }, /* wp::medium */
+            { 0.0014, 0.0283, 0.0047, 0.0267, 0.0154 }, /* wp::tight */
             {    -1.,    -1.,    -1.,    -1.,    -1. }  /* wp::claustro */
         }
     }, { /* ip::cent */

@@ -1,4 +1,5 @@
 #include "../include/lambdas.h"
+#include "../include/specifics.h"
 #include "../include/tnptree.h"
 
 #include "../git/config/include/configurer.h"
@@ -58,83 +59,6 @@ float nearest_neighbour(float pt, float eta, float phi,
     }
 
     return mindr2;
-}
-
-static int32_t pass_basic_selections(electrons* t, int64_t index) {
-    return (*t->eleConvVeto)[index] && (*t->eleMissHits)[index] <= 1
-        && (*t->eleIP3D)[index] < 0.03;
-}
-
-static int32_t pass_veto_id(electrons* t, int64_t index) {
-    if (!pass_basic_selections(t, index)) { return 0; }
-
-    if (std::abs((*t->eleSCEta)[index]) < 1.442) {
-        return (*t->eleHoverE)[index] < 0.06071
-            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.01029
-            && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00475
-            && std::abs((*t->eledPhiAtVtx)[index]) < 0.06250
-            && std::abs((*t->eleEoverPInv)[index]) < 0.13274;
-    }
-
-    return (*t->eleHoverE)[index] < 0.04518
-        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.03055
-        && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00662
-        && std::abs((*t->eledPhiAtVtx)[index]) < 0.08807
-        && std::abs((*t->eleEoverPInv)[index]) < 0.90658;
-}
-
-static int32_t pass_loose_id(electrons* t, int64_t index) {
-    if (!pass_basic_selections(t, index)) { return 0; }
-
-    if (std::abs((*t->eleSCEta)[index]) < 1.442) {
-        return (*t->eleHoverE)[index] < 0.02711
-            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.01016
-            && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00316
-            && std::abs((*t->eledPhiAtVtx)[index]) < 0.03937
-            && std::abs((*t->eleEoverPInv)[index]) < 0.05304;
-    }
-
-    return (*t->eleHoverE)[index] < 0.03750
-        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.02946
-        && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00565
-        && std::abs((*t->eledPhiAtVtx)[index]) < 0.03816
-        && std::abs((*t->eleEoverPInv)[index]) < 0.02356;
-}
-
-static int32_t pass_medium_id(electrons* t, int64_t index) {
-    if (!pass_basic_selections(t, index)) { return 0; }
-
-    if (std::abs((*t->eleSCEta)[index]) < 1.442) {
-        return (*t->eleHoverE)[index] < 0.02456
-            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.00971
-            && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00240
-            && std::abs((*t->eledPhiAtVtx)[index]) < 0.02921
-            && std::abs((*t->eleEoverPInv)[index]) < 0.04474;
-    }
-
-    return (*t->eleHoverE)[index] < 0.01133
-        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.02941
-        && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00559
-        && std::abs((*t->eledPhiAtVtx)[index]) < 0.02826
-        && std::abs((*t->eleEoverPInv)[index]) < 0.02343;
-}
-
-static int32_t pass_tight_id(electrons* t, int64_t index) {
-    if (!pass_basic_selections(t, index)) { return 0; }
-
-    if (std::abs((*t->eleSCEta)[index]) < 1.442) {
-        return (*t->eleHoverE)[index] < 0.02049
-            && (*t->eleSigmaIEtaIEta_2012)[index] < 0.00934
-            && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00229
-            && std::abs((*t->eledPhiAtVtx)[index]) < 0.02794
-            && std::abs((*t->eleEoverPInv)[index]) < 0.03921;
-    }
-
-    return (*t->eleHoverE)[index] < 0.00139
-        && (*t->eleSigmaIEtaIEta_2012)[index] < 0.02829
-        && std::abs((*t->eledEtaSeedAtVtx)[index]) < 0.00470
-        && std::abs((*t->eledPhiAtVtx)[index]) < 0.02668
-        && std::abs((*t->eleEoverPInv)[index]) < 0.01539;
 }
 
 int flatten(char const* config, char const* output) {
@@ -223,13 +147,18 @@ int flatten(char const* config, char const* output) {
                 ptfinal, etafinal, phifinal));
 
             /* evaluate id */
-            veto_id.push_back(pass_veto_id(tree_egm, j));
-            loose_id.push_back(pass_loose_id(tree_egm, j));
-            medium_id.push_back(pass_medium_id(tree_egm, j));
-            tight_id.push_back(pass_tight_id(tree_egm, j));
+            veto_id.push_back(passes_electron_id<
+                ip::incl, wp::veto, electrons>(tree_egm, j));
+            loose_id.push_back(passes_electron_id<
+                ip::incl, wp::loose, electrons>(tree_egm, j));
+            medium_id.push_back(passes_electron_id<
+                ip::incl, wp::medium, electrons>(tree_egm, j));
+            tight_id.push_back(passes_electron_id<
+                ip::incl, wp::tight, electrons>(tree_egm, j));
 
             if (tag < 0 && l1mindr2.back() < l1dr2 && hltmindr2.back() < hltdr2
-                && tight_id.back() && (*tree_egm->elePt)[j] > tag_pt_min) { tag = j; }
+                    && tight_id.back() && (*tree_egm->elePt)[j] > tag_pt_min) {
+                tag = j; }
         }
 
         if (tag < 0) { continue; }
