@@ -11,6 +11,7 @@
 #include "../git/tricks-and-treats/include/trunk.h"
 #include "../git/tricks-and-treats/include/zip.h"
 
+#include "TColor.h"
 #include "TF1.h"
 #include "TFile.h"
 #include "TLatex.h"
@@ -26,6 +27,8 @@ static std::string index_to_string(int64_t i, int64_t j) {
     return std::to_string(i) + "_"s + std::to_string(j);
 }
 
+static auto const grey = TColor::GetColor("#515151");
+
 int closure(char const* config, char const* output) {
     auto conf = new configurer(config);
 
@@ -35,6 +38,9 @@ int closure(char const* config, char const* output) {
     auto files = conf->get<std::vector<std::string>>("files");
     auto labels = conf->get<std::vector<std::string>>("labels");
     auto legends = conf->get<std::vector<std::string>>("legends");
+    auto bounds = conf->get<std::vector<std::string>>("bounds");
+    auto marks = conf->get<std::vector<std::string>>("marks");
+
     auto dcent = conf->get<std::vector<float>>("cent");
 
     auto icent = new interval(dcent);
@@ -54,6 +60,17 @@ int closure(char const* config, char const* output) {
     }, fs, files, hs, labels);
 
     auto hratio = new history<TH1F>(*hs[0], "ratio");
+
+    std::vector<TFile*> bs(bounds.size(), nullptr);
+    std::vector<history<TH1F>*> ms(marks.size(), nullptr);
+
+    zip([&](TFile*& b, std::string const& bound, history<TH1F>*& m,
+            std::string const& mark) {
+        b = new TFile(bound.data(), "read");
+        m = new history<TH1F>(b, mark);
+
+        m->apply([](TH1* hist) { hist->Scale(1. / hist->Integral()); });
+    }, bs, bounds, ms, marks);
 
     auto hb = new pencil();
     hb->category("type", "bb", "be", "ee");
@@ -91,6 +108,45 @@ int closure(char const* config, char const* output) {
         info->DrawLatexNDC(0.675, 0.84, buffer);
     };
 
+    /* uncertainty box */
+    auto box = [&](TH1* h, int64_t index, int64_t type) {
+        if (!ms[0] || !ms[1]) { return; }
+
+        TGraph* gr = new TGraph();
+        gr->SetFillStyle(1001);
+        gr->SetFillColorAlpha(grey, 0.24);
+
+        auto ix = hratio->index_for(x{type, (index - 1) % 3, 0});
+
+        auto ref = (*hs[1])[ix];
+        auto up = (*ms[0])[ix];
+        auto down = (*ms[1])[ix];
+
+        for (int i = 1; i <= up->GetNbinsX(); ++i) {
+            double x = h->GetBinCenter(i);
+            double width = h->GetBinWidth(i);
+            double val = ref->GetBinContent(i);
+            double eup = up->GetBinContent(i);
+            double edown = down->GetBinContent(i);
+
+            if (index > 3) {
+                eup = eup / val;
+                edown = edown / val;
+            }
+
+            double nominal = index > 3 ? 1. : val;
+            double error = std::max(std::abs(eup - nominal),
+                                    std::abs(edown - nominal));
+
+            gr->SetPoint(0, x - (width / 2), nominal + error);
+            gr->SetPoint(1, x + (width / 2), nominal + error);
+            gr->SetPoint(2, x + (width / 2), nominal - error);
+            gr->SetPoint(3, x - (width / 2), nominal - error);
+
+            gr->DrawClone("f");
+        }
+    };
+
     std::vector<std::string> types = { "bb"s, "be"s, "ee"s };
 
     auto c1 = std::array<paper*, 3>();
@@ -101,6 +157,7 @@ int closure(char const* config, char const* output) {
         c1[i]->accessory(info_text);
         c1[i]->accessory(std::bind(line_at, _1, 1, 60, 120));
         c1[i]->jewellery(ratio_style);
+        c1[i]->jewellery(std::bind(box, _1, _2, i));
 
         c1[i]->add(ncents * 2);
         c1[i]->divide(ncents, 2);
