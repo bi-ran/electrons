@@ -32,9 +32,9 @@ int closure(char const* config, char const* output) {
     auto system = conf->get<std::string>("system");
     auto tag = conf->get<std::string>("tag");
 
-    auto data = conf->get<std::string>("data");
-    auto mc = conf->get<std::string>("mc");
+    auto files = conf->get<std::vector<std::string>>("files");
     auto labels = conf->get<std::vector<std::string>>("labels");
+    auto legends = conf->get<std::vector<std::string>>("legends");
     auto dcent = conf->get<std::vector<float>>("cent");
 
     auto icent = new interval(dcent);
@@ -42,16 +42,18 @@ int closure(char const* config, char const* output) {
     TH1::AddDirectory(false);
     TH1::SetDefaultSumw2();
 
-    TFile* fd = new TFile(data.data(), "read");
-    TFile* fm = new TFile(mc.data(), "read");
+    std::vector<TFile*> fs(files.size(), nullptr);
+    std::vector<history<TH1F>*> hs(files.size(), nullptr);
 
-    auto hdata = new history<TH1F>(fd, "data_"s + labels[0] + "_mass");
-    auto hmc = new history<TH1F>(fm, "mc_"s + labels[1] + "_mass");
+    zip([&](TFile*& f, std::string const& file, history<TH1F>*& h,
+            std::string const& label) {
+        f = new TFile(file.data(), "read");
+        h = new history<TH1F>(f, label);
 
-    auto normalise = [](TH1* h) { h->Scale(1. / h->Integral()); };
-    hdata->apply(normalise); hmc->apply(normalise);
+        h->apply([](TH1* hist) { hist->Scale(1. / hist->Integral()); });
+    }, fs, files, hs, labels);
 
-    auto hratio = new history<TH1F>(*hdata, "ratio");
+    auto hratio = new history<TH1F>(*hs[0], "ratio");
 
     auto hb = new pencil();
     hb->category("type", "bb", "be", "ee");
@@ -60,8 +62,9 @@ int closure(char const* config, char const* output) {
     hb->alias("bb", "EB #otimes EB");
     hb->alias("be", "EB #otimes EE");
     hb->alias("ee", "EE #otimes EE");
-    hb->alias("mc", "MC");
-    hb->alias("ratio", "data / MC");
+    hb->alias("data", legends[0]);
+    hb->alias("mc", legends[1]);
+    hb->alias("ratio", legends[0] + " / " + legends[1]);
 
     hb->ditto("ratio", "data");
 
@@ -104,14 +107,14 @@ int closure(char const* config, char const* output) {
 
         for (int64_t j = 0; j < ncents; ++j) {
             auto index = hratio->index_for(x{i, j, 0});
-            (*hratio)[index]->Divide((*hmc)[index]);
+            (*hratio)[index]->Divide((*hs[1])[index]);
 
-            for (auto h : { hmc, hdata, hratio })
+            for (auto h : { hs[0], hs[1], hratio })
                 (*h)[index]->GetFunction(("f_"s + index_to_string(i, j)).data())
                     ->SetBit(TF1::kNotDraw);
 
-            c1[i]->stack(j + 1, (*hmc)[index], types[i], "mc");
-            c1[i]->stack(j + 1, (*hdata)[index], types[i], "data");
+            c1[i]->stack(j + 1, (*hs[1])[index], types[i], "mc");
+            c1[i]->stack(j + 1, (*hs[0])[index], types[i], "data");
             c1[i]->stack(ncents + j + 1, (*hratio)[index], types[i], "ratio");
         }
     }
@@ -122,8 +125,8 @@ int closure(char const* config, char const* output) {
     for (auto c : c1) { c->draw("pdf"); }
 
     in(output, [&]() {
-        hdata->save(tag);
-        hmc->save(tag);
+        hs[0]->save(tag);
+        hs[1]->save(tag);
         hratio->save(tag);
     });
 
